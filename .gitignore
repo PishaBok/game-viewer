@@ -1,0 +1,5 @@
+build/
+*.DC_STORE
+.vscode/
+.cache/
+*.code-workspace

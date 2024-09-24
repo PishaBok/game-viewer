@@ -1,0 +1,1 @@
+SELECT name, url, country, description, year, industry, employees FROM organization WHERE 1=1

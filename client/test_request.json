@@ -1,0 +1,20 @@
+{
+    "reqType": 1,
+    "params": {
+        "page": 1,
+        "filter": {
+            "country": {
+                "type": "string",
+                "value": "Iran"
+            }
+        },
+        "search": {
+            "country": {
+                "type": "string",
+                "value": "Iran"
+            }
+        }
+    }
+
+
+}
