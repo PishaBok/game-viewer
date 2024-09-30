@@ -1,20 +1,23 @@
 #pragma once
 
+#include <thread>
+#include <future>
 #include <QObject>
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QSqlError>
+#include <QThread>
 
 #include "database_manager.hpp"
 #include "response.hpp"
+#include "functions.hpp"
 
-enum ReqType
+enum class ReqType
 {
-    page,
-    filter,
-    search,
-    maxValue
+    get,
+    post,
+    max
 };
 
 struct Params
@@ -28,17 +31,25 @@ class Request : public QObject
 {
     Q_OBJECT
 public:
-    Request(const QJsonObject& data, DatabaseManager* dbManager, QObject* parent = nullptr);
+    Request(const QJsonObject& data, DatabaseManager& dbManager, QObject* parent = nullptr);
 
     Response process();
+    void start();
+    void pause();
+
+    bool isFinished();
+
 
 private:
-    DatabaseManager* _dbManager;
+    DatabaseManager& _dbManager;
     ReqType _reqType;
     Params _params;
 
+    std::atomic<bool> _running;
+    bool _finished;
 
-    
+
+
 
     // PARSE JSON
     void parseJson(const QJsonObject& json);
@@ -47,8 +58,5 @@ private:
     bool validateJson(const QJsonObject& json) const;
 
     // PROCESS REQEST
-    TableModel page();
-
-    void bindValues(QSqlQuery& query, const std::map<QString, QVariant>& values);
-
+    TableModel page(const int number);
 };

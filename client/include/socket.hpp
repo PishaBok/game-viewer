@@ -18,6 +18,9 @@ public:
 
 private:
     QTcpSocket* _tcpSocket;
+    qint64 _expectedLength;
+    QByteArray _buffer;
+
 
     TableModel _model;
 

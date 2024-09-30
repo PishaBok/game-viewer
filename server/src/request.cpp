@@ -1,7 +1,7 @@
 #include "request.hpp"
 
-Request::Request(const QJsonObject& data, DatabaseManager* dbManager, QObject* parent) : QObject(parent),
-    _dbManager{dbManager}
+Request::Request(const QJsonObject& data, DatabaseManager& dbManager, QObject* parent) : QObject(parent),
+    _dbManager{dbManager}, _running{true}, _finished{false}
 {
     if (!validateJson(data))
     {
@@ -10,6 +10,33 @@ Request::Request(const QJsonObject& data, DatabaseManager* dbManager, QObject* p
 
     parseJson(data);
 }
+
+Response Request::process()
+{
+    Response result;
+
+    result.setPageNumber(_params.page);
+    result.setModel(page(1));
+
+    _finished = true;
+    return result;
+}
+
+void Request::start()
+{
+    _running.store(true);
+}
+
+void Request::pause()
+{
+    _running.store(false);
+}
+
+bool Request::isFinished()
+{
+    return _finished;
+}
+
 
 void Request::parseJson(const QJsonObject &json)
 {
@@ -29,7 +56,7 @@ std::map<QString, QVariant> Request::jsonToMap(const QJsonObject &json) const
     for (const QString& key: json.keys())
     {
         QJsonObject typeValueObj = json[key].toObject();
-        result[":" + key] = parseTypedValue(typeValueObj); 
+        result[key] = parseTypedValue(typeValueObj); 
     }
 
     return std::move(result);
@@ -56,7 +83,7 @@ QVariant Request::parseTypedValue(const QJsonObject& typedValueObj) const
 
 bool Request::validateJson(const QJsonObject &json) const
 {
-    if (!json.contains("reqType") || !json.value("reqType").isDouble() || json.value("reqType").toInt() >= ReqType::maxValue)
+    if (!json.contains("reqType") || !json.value("reqType").isDouble() || json.value("reqType").toInt() >= static_cast<int>(ReqType::max))
     {
         return false;
     }
@@ -69,44 +96,22 @@ bool Request::validateJson(const QJsonObject &json) const
     return true;
 }
 
-TableModel Request::page()
+
+
+
+TableModel Request::page(const int number)
 {
-    _dbManager->connect("client");
-    QString queryStr{_dbManager->getQueryStr()};
-    QSqlQuery query(QSqlDatabase::database("client"));
-    if (!query.prepare(queryStr)) 
-    {
-        qDebug() << "Ошибка подготовки запроса:" << query.lastError();
-    }
+    QString connectionName{generateRandomString()};
 
-    bindValues(query, _params.filter);
-
-    if (!query.exec()) {
-        qDebug() << "Ошибка выполнения запроса:" << query.lastError();
-    }
+    auto query{_dbManager.getQuery(connectionName, {_params.filter, 15000, 15 * (number - 1)})};
+    query->exec();
 
     QSqlQueryModel model;
-    model.setQuery(std::move(query));
+    model.setQuery(std::move(*query));
 
-    return TableModel{model};
+    TableModel tableModel{model};
+    _dbManager.disconnect(connectionName);
+
+    return tableModel;
 }
-
-void Request::bindValues(QSqlQuery &query, const std::map<QString, QVariant> &values)
-{
-    for (const auto& value: values)
-    {
-        query.bindValue(value.first, value.second);
-    }
-}
-
-Response Request::process()
-{
-    Response response;
-
-    response.setPageNumber(_params.page);
-    response.setModel(page());
-
-    return std::move(response);
-}
-
 

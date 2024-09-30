@@ -4,6 +4,7 @@
 #include <QSqlQueryModel>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QJsonValue>
 
 class TableModel : public QAbstractTableModel
 {
@@ -27,6 +28,7 @@ public:
     void setRowCount(const int nRows);
     void setColCount(const int nCols); 
     void loadJson(const QJsonObject& jsonObj);
+    QJsonObject toJson() const;
 
 private:
     int _nRows;

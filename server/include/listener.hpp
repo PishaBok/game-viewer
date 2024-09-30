@@ -5,18 +5,18 @@
 #include <QTcpSocket>
 #include <QMessageBox>
 
-#include "client_handler.hpp"
 
-class Server : public QTcpServer
+
+class Listener : public QTcpServer
 {   
     Q_OBJECT
 public:
-    Server(const int port, QTcpServer* parent = nullptr);
+    Listener(const int port, QTcpServer* parent = nullptr);
     
 protected:
     void incomingConnection(qintptr socketDescriptor) override;
 
-private:
-    DatabaseManager _dbManager;
-    ClientHandler _clientHandler;
+signals:
+    void serverStarted();
+    void newConnection(qintptr socketDescriptor);
 };  

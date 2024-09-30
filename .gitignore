@@ -1,5 +1,9 @@
 build/
-*.DC_STORE
+*.DS_Store
 .vscode/
 .cache/
 *.code-workspace
+*.txt.user
+*.json
+server.log
+sql.txt

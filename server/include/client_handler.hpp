@@ -3,22 +3,26 @@
 #include <thread>
 #include <QObject>
 #include <QTcpSocket>
-#include <QEventLoop>
+#include <QThread>
 
-#include "request.hpp"
-
+#include "request_handler.hpp"
 
 class ClientHandler : public QObject
 {
     Q_OBJECT
 public:
-    ClientHandler(DatabaseManager* dbManager, QObject* parent = nullptr);
-
-    void newCLient(qintptr socketDescriptor);
+    ClientHandler(qintptr socketDescriptor, DatabaseManager& dbManager, QObject* parent = nullptr);
 
 private:
-    DatabaseManager* _dbManager;
-    std::map<qintptr, std::unique_ptr<QTcpSocket>> _clientList;  
+    DatabaseManager& _dbManager;
+    std::unique_ptr<QTcpSocket> _socket;
+    qintptr _descriptor;
+    
 
-    std::unique_ptr<QTcpSocket> initClient(qintptr socketDescriptor, QEventLoop* loop);
+private slots:
+    void newRequest();
+    void sendResponse(const Response& response);
+    void socketDisconnected();
+signals:
+    void finished(const QString& clientId);
 };

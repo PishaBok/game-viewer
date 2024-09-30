@@ -15,6 +15,7 @@ add_library(CommonLib SHARED)
 
 target_sources(CommonLib PRIVATE
         src/table_model.cpp     include/table_model.hpp
+        src/functions.cpp       include/functions.hpp
 )
 
 target_include_directories(CommonLib PUBLIC 

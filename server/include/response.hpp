@@ -23,10 +23,4 @@ public:
 private:
     int _pageNumber;
     TableModel _model;
-
-
-    QJsonObject modelToJson(const TableModel &model) const;
-
-
-    
 };

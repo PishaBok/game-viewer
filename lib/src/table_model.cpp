@@ -167,24 +167,60 @@ void TableModel::loadJson(const QJsonObject &jsonObj)
     _nRows = 0;
     _nColumns = 0;
 
-    for (int counter{0}; const QVariant& colName: jsonObj.keys().toVector())
+    QJsonArray headers{jsonObj["headers"].toArray()};
+    for(int counter{0}; const QJsonValue& header: headers)
     {
-        setHeaderData(counter, Qt::Horizontal, colName);
+        setHeaderData(counter, Qt::Horizontal, header.toString());
         ++counter;
     }
 
-    setRowCount(jsonObj.value(jsonObj.keys().first()).toArray().size());
+    setRowCount(jsonObj["data"].toArray().size());
     setColCount(_horizontalHeaders.size());
 
-    for (int col{0}; const QString& key: jsonObj.keys())
+    for (int row{0}; const QJsonValue& rowValue: jsonObj["data"].toArray())
     {
-        QJsonArray jsonArr = jsonObj[key].toArray();
-        for (int row{0}; row < jsonArr.size(); ++row)
+        QJsonArray rowArray{rowValue.toArray()};
+        for(int col{0}; const QJsonValue& cellData: rowArray)
         {
-            setData(this->index(row, col), jsonArr[row].toVariant());
+            setData(this->index(row, col), cellData.toVariant());
+            ++col;
         }
-        ++col;
+        ++row;
     }
 
     endResetModel();
+}
+
+QJsonObject TableModel::toJson() const
+{
+    QJsonObject jsonObj;
+
+    QJsonArray headerArray;
+    QJsonArray dataArray;
+
+    // Сохраняем заголовки
+    for (int col{0}; col < columnCount(); ++col)
+    {
+        QVariant columnName = headerData(col, Qt::Horizontal);
+        headerArray.append(QJsonValue::fromVariant(columnName));
+    }
+
+    // Сохраняем данные
+    for (int row{0}; row < _nRows; ++row)
+    {
+        QJsonArray rowArray;
+        for (int col{0}; col < columnCount(); ++col)
+        {
+            QVariant data = this->data(this->index(row, col));
+            rowArray.append(QJsonValue::fromVariant(data));
+        }
+        dataArray.append(rowArray); // Добавляем объект строки в массив
+    }
+
+    jsonObj.insert("headers", headerArray);
+    jsonObj.insert("data", dataArray);
+
+    return jsonObj;
+
+    return QJsonObject();
 }
