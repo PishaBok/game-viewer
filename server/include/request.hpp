@@ -58,5 +58,5 @@ private:
     bool validateJson(const QJsonObject& json) const;
 
     // PROCESS REQEST
-    TableModel page(const int number);
+    TableModel getPage(const int number);
 };

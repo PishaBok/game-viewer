@@ -12,6 +12,7 @@ class TableModel : public QAbstractTableModel
 public:
     explicit TableModel(QObject* parent = nullptr);
     explicit TableModel(const QSqlQueryModel& other, QObject* parent = nullptr);
+    explicit TableModel(QSqlQuery&& query, QObject* parent = nullptr);
     TableModel(const TableModel& other);
     TableModel(TableModel&& other) noexcept;
     TableModel& operator=(const TableModel& other);

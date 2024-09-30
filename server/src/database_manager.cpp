@@ -1,14 +1,24 @@
 #include "database_manager.hpp"
 
 DatabaseManager::DatabaseManager(ConnectionParams conParams, QObject* parent) : 
-    QObject(parent), _params{conParams},
+    QObject(parent), _params{conParams}, _mainConnection{"mainConnection"},
+    _compareFunctions{{CompareOperator::equal, "="}, {CompareOperator::like, "LIKE"}},
     _queryString {R"(
     SELECT name, platform, year, genre, publisher, criticscore, developer, rating 
     FROM game 
     WHERE 1 = 1
     )"}, _orderBy{"ORDER BY id, name, platform, year, genre, publisher, criticscore, developer, rating"}
-{}
+{
+    init();
+}
 
+DatabaseManager::~DatabaseManager()
+{
+    for (const QString& con: _activeConnections)
+    {
+        disconnect(con);
+    }
+}
 
 
 bool DatabaseManager::connect(const QString &conName)
@@ -55,27 +65,58 @@ std::unique_ptr<QSqlQuery> DatabaseManager::getQuery(const QString &connectionNa
     {
         qDebug() << "Ошибка подготовки запроса:" << query->lastError();
     }
-
     bindValues(*query, params.filter);
 
     return std::move(query);
 }
 
-QString DatabaseManager::getQueryStr(const QueryParams& params) const
+
+
+void DatabaseManager::init()
+{
+    connect(_mainConnection);
+
+    QSqlQuery query{QSqlDatabase::database(_mainConnection)};
+    query.exec(_queryString + " LIMIT 1");
+    QSqlRecord record = query.record();
+    for (size_t i{0}; i < record.count(); ++i)
+    {
+        QSqlField field = record.field(i);
+        _columnsCompareMap[field.name()] = getOperator(field.metaType().id());
+    }
+}
+
+CompareOperator DatabaseManager::getOperator(int typeId)
+{
+    switch (typeId) {
+        case QMetaType::QString:
+            return CompareOperator::like;
+        case QMetaType::Int: case QMetaType::Double: case QMetaType::QDate:
+        case QMetaType::QTime: case QMetaType::QDateTime: case QMetaType::Bool:
+            return CompareOperator::equal;
+        default:
+            return CompareOperator::equal;
+    }
+}
+
+QString DatabaseManager::getQueryStr(const QueryParams &params) const
 {
     QString queryStr{_queryString};
     for (const auto& el: params.filter)
     {
-        queryStr += " AND (" + el.first + " = :" + el.first + ")";
+        queryStr += " AND (" + el.first + " " + _compareFunctions.at(_columnsCompareMap.at(el.first)) + " :" + el.first + ")";
     }
 
-    return queryStr + _orderBy;
+    return queryStr + " " + _orderBy;
 }
 
 void DatabaseManager::bindValues(QSqlQuery &query, const std::map<QString, QVariant> &values)
 {
     for (const auto& value: values)
     {
-        query.bindValue(":" + value.first, value.second);
+        QString stringVal = value.second.toString();
+
+        if (_columnsCompareMap.at(value.first) == CompareOperator::like) {stringVal += "%";}
+        query.bindValue(":" + value.first, stringVal);
     }
 }

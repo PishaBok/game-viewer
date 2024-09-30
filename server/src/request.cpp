@@ -16,7 +16,7 @@ Response Request::process()
     Response result;
 
     result.setPageNumber(_params.page);
-    result.setModel(page(1));
+    result.setModel(getPage(_params.page));
 
     _finished = true;
     return result;
@@ -36,6 +36,24 @@ bool Request::isFinished()
 {
     return _finished;
 }
+
+TableModel Request::getPage(const int number)
+{
+    QString connectionName{generateRandomString()};
+
+    auto query{_dbManager.getQuery(connectionName, {_params.filter, 15, 15 * (number - 1)})};
+    query->exec();
+
+    TableModel tableModel{std::move(*query)};
+    _dbManager.disconnect(connectionName);
+
+    return tableModel;
+}
+
+
+
+
+
 
 
 void Request::parseJson(const QJsonObject &json)
@@ -95,23 +113,3 @@ bool Request::validateJson(const QJsonObject &json) const
 
     return true;
 }
-
-
-
-
-TableModel Request::page(const int number)
-{
-    QString connectionName{generateRandomString()};
-
-    auto query{_dbManager.getQuery(connectionName, {_params.filter, 15000, 15 * (number - 1)})};
-    query->exec();
-
-    QSqlQueryModel model;
-    model.setQuery(std::move(*query));
-
-    TableModel tableModel{model};
-    _dbManager.disconnect(connectionName);
-
-    return tableModel;
-}
-

@@ -21,6 +21,29 @@ TableModel::TableModel(const QSqlQueryModel &other, QObject* parent)
     }
 }
 
+TableModel::TableModel(QSqlQuery &&query, QObject* parent)
+    : QAbstractTableModel{parent}, _nRows{}, _nColumns{}
+{
+    QSqlQueryModel queryModel;
+    queryModel.setQuery(std::move(query));
+
+    _nRows = queryModel.rowCount();
+    _nColumns = queryModel.columnCount();
+
+    for (int col{0}, colCount{queryModel.columnCount()}; col < colCount; ++col)
+    {
+        setHeaderData(col, Qt::Horizontal, queryModel.headerData(col, Qt::Horizontal));
+    }
+
+    for (int row{0}, rowCount{queryModel.rowCount()}; row < rowCount; ++row)
+    {
+        for (int col{0}, colCount{queryModel.columnCount()}; col < colCount; ++col)
+        {
+            setData(this->index(row, col), queryModel.data(queryModel.index(row, col)));
+        }
+    }
+}
+
 TableModel::TableModel(const TableModel &other)
     : QAbstractTableModel{other.parent()},
     _nRows{other.rowCount()}, _nColumns{other.columnCount()}, _horizontalHeaders{other._horizontalHeaders}
