@@ -11,23 +11,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets Sql Network Concurrent) 
 
-add_subdirectory(../lib CommonLib)
+add_subdirectory(../libcommon CommonLib)
 
-add_executable(Server)
-
-target_sources(Server PRIVATE
-        main.cpp
-        src/listener.cpp            include/listener.hpp
-        src/database_manager.cpp    include/database_manager.hpp
-        src/request.cpp             include/request.hpp
-        src/response.cpp            include/response.hpp
-        src/client_handler.cpp      include/client_handler.hpp
-        src/request_handler.cpp     include/request_handler.hpp 
-        src/log_manager.cpp         include/log_manager.hpp
+file(GLOB_RECURSE PROJECT_SOURCES 
+        "server/*.cpp"          "server/*.hpp" 
+        "server/requests/*.cpp"    "server/requests/*.hpp" 
+        "server/responses/*.cpp"   "server/responses/*.hpp"
 )
 
+add_executable(Server main.cpp ${PROJECT_SOURCES})
+
 target_include_directories(Server PRIVATE 
-        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}
 )
 
 target_link_libraries(Server PRIVATE CommonLib Qt6::Widgets Qt6::Sql Qt6::Network Qt6::Concurrent)

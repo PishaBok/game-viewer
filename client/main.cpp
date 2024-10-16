@@ -4,13 +4,15 @@
 #include <QTcpSocket>
 #include <thread>
 
-#include "window.hpp"
+#include <client/client_engine.hpp>
+#include <client/client.hpp>
 
 int main(int argc, char** argv)
 {
     QApplication app(argc, argv);
 
-    Window wd;
+    ClientEngine engine;
+    Client wd;
     wd.show();
 
     return app.exec();
