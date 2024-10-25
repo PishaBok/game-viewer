@@ -1,4 +1,5 @@
 #include <libcommon/table_model.hpp>
+#include "table_model.hpp"
 
 namespace clib
 {
@@ -114,6 +115,25 @@ namespace clib
 
         return (nRole == Qt::DisplayRole || nRole == Qt::EditRole)
                     ? _data[index] : QVariant();
+    }
+
+    QVariant TableModel::data(const int row, const QString &columnName) const
+    {
+        int colIndex = -1;
+        for (auto it = _horizontalHeaders.begin(); it != _horizontalHeaders.end(); ++it)
+        {
+            if (it.value().toString() == columnName)
+            {
+                colIndex = it.key();
+                break;
+            }
+        }
+
+        if (colIndex == -1) {return QVariant();}
+
+        QModelIndex index = this->index(row, colIndex);
+        
+        return data(index);
     }
 
     bool TableModel::setData(const QModelIndex &index, const QVariant &value, int nRole)

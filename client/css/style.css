@@ -1,0 +1,13 @@
+QWidget#card {
+    background: qlineargradient(
+        spread:pad,
+        x1:0, y1:0, x2:1, y2:1,
+        stop:0 rgba(0, 0, 139, 0.5),  /* Dark Blue with 50% opacity */
+        stop:0.5 rgba(0, 0, 51, 0.3)    /* Very Dark Blue with 30% opacity */
+    );
+    border-radius: 10px; /* Скругленные углы для эффекта */
+}
+
+QWidget#page {
+    background-color: rgb(55, 60, 71);
+}

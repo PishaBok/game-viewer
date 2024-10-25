@@ -1,7 +1,9 @@
 #pragma once
 
 #include <server/requests/base.hpp>
-#include <server/responses/page.hpp>
+#include <libcommon/table_model.hpp>
+
+class PageResponse;
 
 class PageRequest: public Request
 {
@@ -23,4 +25,17 @@ private:
     std::vector<std::future<std::pair<int, clib::TableModel>>> startPageThreads();
     std::pair<int, clib::TableModel> createPage(const int number);
 
+};
+
+class PageResponse: public Response
+{
+public:
+    PageResponse();
+    virtual ~PageResponse() = default;
+    QJsonDocument toJson() const override;
+    void addPage(const int pageN, const clib::TableModel& model);
+
+
+private:
+    std::map<int, clib::TableModel> _pages;
 };

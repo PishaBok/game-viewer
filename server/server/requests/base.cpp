@@ -4,7 +4,7 @@ Request::Request(DatabaseManager& dbManager)
     : _dbManager{dbManager}
 {}
 
-void Request::setRequest(const QJsonObject &data)
+void Request::setJson(const QJsonObject &data)
 {
     if (!validateJson(data))
     {

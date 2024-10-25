@@ -27,7 +27,7 @@ std::vector<std::future<std::pair<int, clib::TableModel>>> PageRequest::startPag
  
     for (int i{0}; i < pagesToMake; ++i)
     {
-        int pageId = _page - cacheSize + i;
+        int pageId = (_page + i) - cacheSize;
         futureModels[i] = std::async(std::launch::async, &PageRequest::createPage, this, pageId);
     }
 
@@ -37,7 +37,7 @@ std::vector<std::future<std::pair<int, clib::TableModel>>> PageRequest::startPag
 std::pair<int, clib::TableModel> PageRequest::createPage(const int number)
 {
     QString connectionName{"Page_" + clib::generateRandomString()};
-    auto query{_dbManager.getQuery(connectionName, {_filter, 15, 15 * (number - 1)})};
+    auto query{_dbManager.getQuery(connectionName, {_filter, 9, 9 * number})};
     query->exec();
 
     clib::TableModel tableModel{std::move(*query)};
@@ -48,10 +48,9 @@ std::pair<int, clib::TableModel> PageRequest::createPage(const int number)
 
 void PageRequest::parseJson(const QJsonObject &jsonObj)
 {
-    QJsonObject params{jsonObj.value("params").toObject()};
-
-    _page = params.value("page").toInt();
-    QJsonObject filterObj{params.value("filter").toObject()};
+    _page = jsonObj.value("page").toInt();
+    qDebug() << _page;
+    QJsonObject filterObj{jsonObj.value("filter").toObject()};
     for(const QString& key: filterObj.keys())
     {
         QJsonObject typeValueObj = filterObj.value(key).toObject();
@@ -67,4 +66,34 @@ bool PageRequest::validateJson(const QJsonObject &jsonObj)
     }
 
     return true;
+}
+
+
+
+
+PageResponse::PageResponse()
+{}
+
+QJsonDocument PageResponse::toJson() const
+{
+    QJsonObject result;
+    result.insert("type", RequestType::page);
+
+    QJsonArray jsonArr;
+    for(const auto& [key, value]: _pages)
+    {
+        QJsonObject modelObj;
+        modelObj.insert("page", key);
+        modelObj.insert("model", value.toJson());
+        jsonArr.append(modelObj);
+    }
+
+    result.insert("data", jsonArr);
+
+    return QJsonDocument(result);
+}
+
+void PageResponse::addPage(const int pageN, const clib::TableModel &model)
+{
+    _pages[pageN] = model;
 }

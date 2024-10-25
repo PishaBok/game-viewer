@@ -40,10 +40,12 @@ public:
     explicit DatabaseManager(ConnectionParams conParams, QObject* parent = nullptr); 
     ~DatabaseManager();
 
-
+    // Интерфейс
     bool connect(const QString& conName);
     void disconnect(const QString& connection);
     std::unique_ptr<QSqlQuery> getQuery(const QString& connectionName, const QueryParams& params);
+
+    // Под удаление
     bool compare(const QSqlQuery& data, const std::map<QString, QVariant>& search);
 private:
     ConnectionParams _params;

@@ -5,10 +5,13 @@
 #include <thread>
 #include <future>
 #include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonDocument>
 
 #include <server/database_manager.hpp>
 #include <libcommon/request_types.hpp>
-#include <server/responses/base.hpp>
+
+class Response;
 
 class Request
 {
@@ -16,7 +19,7 @@ public:
     Request(DatabaseManager& dbManager);
     virtual ~Request() = default;
 
-    void setRequest(const QJsonObject &data);
+    void setJson(const QJsonObject &data);
     virtual std::unique_ptr<Response> process() = 0;
 
 protected:
@@ -27,7 +30,15 @@ protected:
     virtual bool validateJson(const QJsonObject& jsonObj) = 0;
 };
 
+class Response
+{
+public:
+    Response() = default;
+    virtual ~Response() = default;
 
+    virtual QJsonDocument toJson() const = 0;
+
+};
 
 
 

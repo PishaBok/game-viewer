@@ -6,9 +6,11 @@ RequestHandler::RequestHandler(DatabaseManager& dbManager, QObject* parent)
 
 void RequestHandler::setRequest(const QJsonObject &json)
 {
-    RequestType reqType = static_cast<RequestType>(json.value("reqType").toInt());
-
+    // Создаем запрос согласно типу "type"
+    RequestType reqType = static_cast<RequestType>(json.value("type").toInt());
     _request = _requestFactory[reqType](json, _dbManager);
+    // Устанавливаем параметры в созданный запрос из поля "params"
+    _request->setJson(json.value("params").toObject());
 }
 
 void RequestHandler::processRequest()

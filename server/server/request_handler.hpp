@@ -4,7 +4,6 @@
 
 #include <libcommon/request_types.hpp>
 #include <server/requests/page.hpp>
-#include <server/responses/page.hpp>
 
 class RequestHandler: public QObject
 {

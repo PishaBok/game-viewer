@@ -16,7 +16,6 @@ add_subdirectory(../libcommon CommonLib)
 file(GLOB_RECURSE PROJECT_SOURCES 
         "server/*.cpp"          "server/*.hpp" 
         "server/requests/*.cpp"    "server/requests/*.hpp" 
-        "server/responses/*.cpp"   "server/responses/*.hpp"
 )
 
 add_executable(Server main.cpp ${PROJECT_SOURCES})

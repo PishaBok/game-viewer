@@ -60,6 +60,7 @@ std::unique_ptr<QSqlQuery> DatabaseManager::getQuery(const QString& connectionNa
 
     auto query{std::make_unique<QSqlQuery>(QSqlDatabase::database(connectionName))};
     QString queryStr{getQueryStr(params)};
+
     query->prepare(queryStr);
     bindValues(*query, params.filter);
 
@@ -122,9 +123,9 @@ QString DatabaseManager::getQueryStr(const QueryParams &params) const
         queryStr += " AND (" + el.first + " " + _compareFunctions.at(_columnsCompareMap.at(el.first)) + " :" + el.first + ")";
     }
 
-    queryStr += (params.limit != 0) ? " LIMIT " + QString::number(params.limit) : "";
-    queryStr += (params.offset != 0) ? " OFFSET " + QString::number(params.offset) : "";
     queryStr += " " + _orderBy;
+    queryStr += " LIMIT " + QString::number(params.limit);
+    queryStr += " OFFSET " + QString::number(params.offset);
 
     return queryStr;
 }

@@ -20,6 +20,7 @@ namespace clib
         TableModel& operator=(const TableModel& other);
 
         QVariant data(const QModelIndex& index, int nRole = Qt::DisplayRole) const override;
+        QVariant data(const int row, const QString& columnName) const;
         bool setData(const QModelIndex& index, const QVariant& value, int nRole = Qt::EditRole) override;
         QVariant headerData(int nSection, Qt::Orientation orientation, int nRole = Qt::DisplayRole) const override;
         bool setHeaderData(int section, Qt::Orientation orientation, const QVariant& value, int nRole = Qt::EditRole) override;
