@@ -15,8 +15,6 @@ int main(int argc, char** argv)
     file.open(QFile::ReadOnly);
     app.setStyleSheet(file.readAll());
 
-    qDebug() << "Main thread: " << QThread::currentThread();
-
     Client wd;
 
     QThread* engineThread = new QThread;

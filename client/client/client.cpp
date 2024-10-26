@@ -17,9 +17,7 @@ Client::Client(QWidget *parent)
 }
 
 Client::~Client()
-{
-    qDebug() << "Front destructor. Sended from thread: " << QThread::currentThread();
-}
+{}
 
 
 QLineEdit *Client::createPageLabel() const

@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QDebug>
 
 #include <client/socket.hpp>
 #include <client/buttons.hpp>
@@ -17,7 +18,7 @@ public:
 
 private:
     std::map<Button, std::function<void()>> _buttonToFunc;
-    std::map<RequestType, std::function<void(const QJsonValue&)>> _responseConvertMap;
+    std::map<RequestType, std::function<void(const QJsonValue&)>> _responseToFunc;
 
     // Настройки программы
     int _currentPage;
@@ -42,18 +43,19 @@ private:
 
     void stepBack();
     void stepForward();
+    bool findInCache(const int pageN);
 
     // Обработчики кнопок
-    void page();
-    void filter();
-    void search();
+    void pageButton();
+    void filterButton();
+    void searchButton();
 
     // Обработчики ответов сервера
     void pageResponse(const QJsonValue& data);
 public slots:
     void initSocket();
     void processButton(const Button button);
-    void dataReceived(const QJsonObject& json);
+    void processResponse(const QJsonObject& json);
 signals:
     void sendToServer(const QByteArray& message);
 

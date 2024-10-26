@@ -21,7 +21,7 @@ std::unique_ptr<Response> PageRequest::process()
 
 std::vector<std::future<std::pair<int, clib::TableModel>>> PageRequest::startPageThreads()
 {
-    const int cacheSize(1);
+    const int cacheSize(1); // Параметр создания доп страниц, помимо основной
     const int pagesToMake{(cacheSize * 2) + 1};
     std::vector<std::future<std::pair<int, clib::TableModel>>> futureModels(pagesToMake);
  

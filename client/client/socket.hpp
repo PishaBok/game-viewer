@@ -28,6 +28,6 @@ public slots:
     void sendToServer(const QByteArray& message);
 
 signals:
-    void dataReceived(const QJsonObject& data);
+    void processResponse(const QJsonObject& data);
 
 };

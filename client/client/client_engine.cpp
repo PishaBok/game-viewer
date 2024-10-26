@@ -8,29 +8,26 @@ ClientEngine::ClientEngine(QObject *parent)
     {
         {Button::stepBack, std::bind(&ClientEngine::stepBack, this)},
         {Button::stepForward, std::bind(&ClientEngine::stepForward, this)},
-        {Button::filter, std::bind(&ClientEngine::filter, this)},
-        {Button::search, std::bind(&ClientEngine::search, this)}
+        {Button::filter, std::bind(&ClientEngine::filterButton, this)},
+        {Button::search, std::bind(&ClientEngine::searchButton, this)}
     },
-    _responseConvertMap
+    _responseToFunc
     {
         {RequestType::page, std::bind(&ClientEngine::pageResponse, this, std::placeholders::_1)}
     }
 {}
 
 ClientEngine::~ClientEngine()
-{
-    qDebug() << "Client destructor. Thread: " << QThread::currentThread();
-}
+{}
 
 void ClientEngine::initSocket()
 {
-    qDebug() << "Init socket. Thread: " << QThread::currentThread();
     _socket = std::make_unique<Socket>("localhost", 9999);
 
     connect(this, &ClientEngine::sendToServer, _socket.get(), &Socket::sendToServer);
-    connect(_socket.get(), &Socket::dataReceived, this, &ClientEngine::dataReceived);
+    connect(_socket.get(), &Socket::processResponse, this, &ClientEngine::processResponse);
 
-    page();
+    pageButton();
 }
 
 void ClientEngine::processButton(const Button button)
@@ -38,8 +35,11 @@ void ClientEngine::processButton(const Button button)
     _buttonToFunc[button]();
 }
 
-void ClientEngine::page()
+void ClientEngine::pageButton()
 {
+    // Поиск в кэше
+    if (findInCache(_currentPage)) {return;}
+
     QJsonObject filterJson;
 
     for (auto it{_filterMap.begin()}; it != _filterMap.end(); ++it)
@@ -62,16 +62,24 @@ void ClientEngine::page()
     emit sendToServer(QJsonDocument(messageJson).toJson());
 }
 
-void ClientEngine::filter()
+void ClientEngine::filterButton()
 {
 
 }
 
-void ClientEngine::search()
+void ClientEngine::searchButton()
 {
 
 }
 
+
+void ClientEngine::processResponse(const QJsonObject& json)
+{
+    // Получаем тип ответа сервера
+    RequestType type = static_cast<RequestType>(json.value("type").toInt());
+    // Вызывает соответствующую функцию-обработчик
+    _responseToFunc[type](json.value("data"));
+}
 
 void ClientEngine::pageResponse(const QJsonValue& data)
 {
@@ -86,15 +94,19 @@ void ClientEngine::pageResponse(const QJsonValue& data)
         _savedPages[jsonObj.value("page").toInt()] = model;
     }
 
-    emit updatePage(_savedPages.at(_currentPage - 1));
+    emit updatePage(_savedPages.at(_currentPage));
 }
+
+
+
+
 
 void ClientEngine::stepBack()
 {
     if (_currentPage > 1)
     {
         --_currentPage;
-        page();
+        pageButton();
     }
 }
 
@@ -103,16 +115,18 @@ void ClientEngine::stepForward()
     if (_currentPage < _pageCount)
     {
         ++_currentPage;
-        page();
+        pageButton();
     }
 }
 
-
-void ClientEngine::dataReceived(const QJsonObject& json)
+bool ClientEngine::findInCache(const int pageN)
 {
-    qDebug() << "Data received. Thread: " << QThread::currentThread();
-    // Получаем тип ответа сервера
-    RequestType type = static_cast<RequestType>(json.value("type").toInt());
-    // Вызывает соответствующую функцию-обработчик
-    _responseConvertMap[type](json.value("data"));
+    auto found = _savedPages.find(pageN);
+    if (found != _savedPages.end())
+    {
+        emit updatePage(found->second);
+        return true;
+    }
+
+    return false;
 }

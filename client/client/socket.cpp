@@ -10,15 +10,12 @@ Socket::Socket(const QString &host, const int port, QObject *parent)
 
 Socket::~Socket()
 {
-    qDebug() << "Socket Disconnected!" << " Sended from thread: " << QThread::currentThread();
     _tcpSocket->disconnectFromHost();
     _tcpSocket->deleteLater();
 }
 
 void Socket::slotReadyRead()
 {
-    qDebug() << "Socket received a message";
-    
     while (_tcpSocket->canReadLine()) 
     {
         QByteArray line = _tcpSocket->readLine();
@@ -34,7 +31,7 @@ void Socket::slotReadyRead()
             _buffer.append(line);
             if (_buffer.size() >= _expectedLength) 
             {
-                emit dataReceived(QJsonDocument::fromJson(_buffer).object());
+                emit processResponse(QJsonDocument::fromJson(_buffer).object());
                 _buffer.clear();
                 _expectedLength = 0; // Сбрасываем
                 break;
