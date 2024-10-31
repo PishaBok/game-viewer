@@ -8,6 +8,8 @@
 #include <client/socket.hpp>
 #include <client/buttons.hpp>
 #include <libcommon/request_types.hpp>
+#include <libcommon/columns.hpp>
+#include <libcommon/requests/page.hpp>
 
 class ClientEngine: public QObject
 {
@@ -18,12 +20,16 @@ public:
 
 private:
     std::map<Button, std::function<void()>> _buttonToFunc;
-    std::map<RequestType, std::function<void(const QJsonValue&)>> _responseToFunc;
+    std::map<RequestType, std::function<void(const std::unique_ptr<Response>&)>> _responseToFunc;
+    std::map<RequestType, std::function<std::unique_ptr<Response>()>> _responseFactory
+    {
+        {RequestType::page, []() {return std::make_unique<PageResponse>();}}
+    };
 
     // Настройки программы
     int _currentPage;
-    std::map<QString, QString> _filterMap;
-    std::map<QString, QString> _searchMap;
+    std::map<Column, QString> _filterMap;
+    std::map<Column, QString> _searchMap;
 
     // Данные от сервера
     int _pageCount{1000};
@@ -51,7 +57,7 @@ private:
     void searchButton();
 
     // Обработчики ответов сервера
-    void pageResponse(const QJsonValue& data);
+    void pageResponse(const std::unique_ptr<Response>& response);
 public slots:
     void initSocket();
     void processButton(const Button button);

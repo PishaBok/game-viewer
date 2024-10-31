@@ -39,27 +39,10 @@ void ClientEngine::pageButton()
 {
     // Поиск в кэше
     if (findInCache(_currentPage)) {return;}
-
-    QJsonObject filterJson;
-
-    for (auto it{_filterMap.begin()}; it != _filterMap.end(); ++it)
-    {
-        QJsonObject obj;
-        obj.insert("type", _columnsType.at(it->first));
-        obj.insert("value", it->second);
-
-        filterJson.insert(it->first, obj);
-    }
-
-    QJsonObject paramsJson;
-    paramsJson.insert("page", _currentPage);
-    paramsJson.insert("filter", filterJson);
-
-    QJsonObject messageJson;
-    messageJson.insert("type", RequestType::page);
-    messageJson.insert("params", paramsJson);
-
-    emit sendToServer(QJsonDocument(messageJson).toJson());
+    // Создание запроса
+    PageRequest request(_currentPage, _filterMap);
+    // Отправка запроса на сервер
+    emit sendToServer(QJsonDocument(request.serialize()).toJson());
 }
 
 void ClientEngine::filterButton()
@@ -77,15 +60,20 @@ void ClientEngine::processResponse(const QJsonObject& json)
 {
     // Получаем тип ответа сервера
     RequestType type = static_cast<RequestType>(json.value("type").toInt());
-    // Вызывает соответствующую функцию-обработчик
-    _responseToFunc[type](json.value("data"));
+
+    auto response = _responseFactory[type]();
+    response->deserialize(json);
+
+    _responseToFunc[type](std::move(response));
 }
 
-void ClientEngine::pageResponse(const QJsonValue& data)
+void ClientEngine::pageResponse(const std::unique_ptr<Response>& response)
 {
     _savedPages.clear();
 
-    QJsonArray modelsArr{data.toArray()};
+    QJsonObject data = response->data();
+
+    QJsonArray modelsArr = data.value("models").toArray();
     for (const QJsonValue& value: modelsArr)
     {
         QJsonObject jsonObj = value.toObject();

@@ -11,6 +11,9 @@
 #include <QEventLoop>
 #include <QSqlError>
 #include <libcommon/functions.hpp>
+#include <libcommon/columns.hpp>
+#include <libcommon/request_types.hpp>
+#include <server/column_to_comparefunc.hpp>
 
 struct ConnectionParams
 {
@@ -22,16 +25,12 @@ struct ConnectionParams
 
 struct QueryParams
 {
-    std::map<QString, QVariant> filter;
+    RequestType request;
+    std::map<Column, QString> filter;
     int limit;
     int offset;
 };
 
-enum class CompareOperator
-{
-    equal,
-    like
-};
 
 class DatabaseManager : public QObject
 {
@@ -43,25 +42,17 @@ public:
     // Интерфейс
     bool connect(const QString& conName);
     void disconnect(const QString& connection);
-    std::unique_ptr<QSqlQuery> getQuery(const QString& connectionName, const QueryParams& params);
+    std::unique_ptr<QSqlQuery> getQuery(const QString& connectionName, const std::pair<std::string, std::string>& sqlQuery, const QueryParams& params);
 
-    // Под удаление
-    bool compare(const QSqlQuery& data, const std::map<QString, QVariant>& search);
+    //bool compare(const QSqlQuery& data, const std::map<QString, QVariant>& search);
 private:
-    ConnectionParams _params;
+    ConnectionParams _dbParams;
     QString _mainConnection;
-    std::map<QString, CompareOperator> _columnsCompareMap;
-    std::map<CompareOperator, QString> _compareFunctions;
 
     std::vector<QString> _activeConnections;
-    QString _queryString;
-    QString _orderBy;
 
     std::mutex _connectionsMutex;
 
-    
-    void init();
-    CompareOperator getOperator(int typeId);
-    QString getQueryStr(const QueryParams& params) const;
-    void bindValues(QSqlQuery& query, const std::map<QString, QVariant>& values); 
+    QString getQueryStr(const std::string queryTemplate, const std::string orderBy, const QueryParams& params) const;
+    void bindValues(QSqlQuery& query, const std::map<Column, QString>& values); 
 };

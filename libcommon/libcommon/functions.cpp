@@ -20,20 +20,5 @@ namespace clib
     return randomString;
     }
 
-    QVariant parseTypedValue(const QJsonObject& typedValueObj)
-    {
-        QString type = typedValueObj["type"].toString();
-
-        if (type == "int")
-        {
-            return typedValueObj["value"].toInt();
-        }
-        else if (type == "string")
-        {
-            return typedValueObj["value"].toString();
-        }
-
-        return QVariant();
-    }
 }
 

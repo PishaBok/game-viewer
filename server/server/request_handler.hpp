@@ -3,7 +3,7 @@
 #include <QObject>
 
 #include <libcommon/request_types.hpp>
-#include <server/requests/page.hpp>
+#include <server/request_executors/page.hpp>
 
 class RequestHandler: public QObject
 {
@@ -16,12 +16,12 @@ public:
 private:
     DatabaseManager& _dbManager;
 
-    std::map<RequestType, std::function<std::unique_ptr<Request>(const QJsonObject&, DatabaseManager&)>> _requestFactory
+    std::map<RequestType, std::function<std::unique_ptr<Request>(DatabaseManager&)>> _requestFactory
     {
-        {RequestType::page, [](const QJsonObject& json, DatabaseManager& dbManager) {return std::make_unique<PageRequest>(json, dbManager);}}
+        {RequestType::page, [](DatabaseManager& dbManager) {return std::make_unique<PageExecutor>(dbManager);}}
     };
 
-    std::unique_ptr<Request> _request;
+    std::unique_ptr<Request> _requestInProcess;
     std::atomic<bool> _running;
 
 public slots:

@@ -1,6 +1,6 @@
 #pragma once
 
-enum RequestType
+enum class RequestType
 {
     page,
     search,

@@ -1,16 +1,8 @@
 #include <server/database_manager.hpp>
 
 DatabaseManager::DatabaseManager(ConnectionParams conParams, QObject* parent) : 
-    QObject(parent), _params{conParams}, _mainConnection{"mainConnection"},
-    _compareFunctions{{CompareOperator::equal, "="}, {CompareOperator::like, "LIKE"}},
-    _queryString {R"(
-    SELECT name, platform, year, genre, publisher, criticscore, developer, rating 
-    FROM game 
-    WHERE 1 = 1
-    )"}, _orderBy{"ORDER BY id, name, platform, year, genre, publisher, criticscore, developer, rating"}
-{
-    init();
-}
+    QObject(parent), _dbParams{conParams}, _mainConnection{"mainConnection"}
+{}
 
 DatabaseManager::~DatabaseManager()
 {
@@ -27,10 +19,10 @@ bool DatabaseManager::connect(const QString &conName)
 
     QSqlDatabase db = QSqlDatabase::addDatabase("QPSQL", conName);
 
-    db.setDatabaseName(_params.database);
-    db.setHostName(_params.host);
-    db.setUserName(_params.user);
-    db.setPassword(_params.password);
+    db.setDatabaseName(_dbParams.database);
+    db.setHostName(_dbParams.host);
+    db.setUserName(_dbParams.user);
+    db.setPassword(_dbParams.password);
 
     _activeConnections.push_back(conName);
 
@@ -50,7 +42,7 @@ void DatabaseManager::disconnect(const QString& connection)
     }
 }
 
-std::unique_ptr<QSqlQuery> DatabaseManager::getQuery(const QString& connectionName, const QueryParams& params)
+std::unique_ptr<QSqlQuery> DatabaseManager::getQuery(const QString& connectionName, const std::pair<std::string, std::string>& sqlQuery, const QueryParams& params)
 {
     auto found = std::find(_activeConnections.begin(), _activeConnections.end(), connectionName);
     if (found == _activeConnections.end())
@@ -58,8 +50,9 @@ std::unique_ptr<QSqlQuery> DatabaseManager::getQuery(const QString& connectionNa
         connect(connectionName);
     }
 
+    auto [queryTemplate, orderBy] = sqlQuery;
     auto query{std::make_unique<QSqlQuery>(QSqlDatabase::database(connectionName))};
-    QString queryStr{getQueryStr(params)};
+    QString queryStr{getQueryStr(queryTemplate, orderBy, params)};
 
     query->prepare(queryStr);
     bindValues(*query, params.filter);
@@ -67,76 +60,49 @@ std::unique_ptr<QSqlQuery> DatabaseManager::getQuery(const QString& connectionNa
     return std::move(query);
 }
 
-bool DatabaseManager::compare(const QSqlQuery &data, const std::map<QString, QVariant> &search)
-{
-    for (const auto& searchValue: search)
-    {
-        QVariant value = data.value(searchValue.first);
+// bool DatabaseManager::compare(const QSqlQuery &data, const std::map<QString, QVariant> &search)
+// {
+//     for (const auto& searchValue: search)
+//     {
+//         QVariant value = data.value(searchValue.first);
 
-        switch(_columnsCompareMap.at(searchValue.first))
-        {
-            case CompareOperator::equal:
-                if (value != searchValue.second) {return false;}
-                break;
-            case CompareOperator::like:
-                if (!value.toString().toLower().startsWith(searchValue.second.toString().toLower())) {return false;}
-                break;
+//         switch(_columnsCompareMap.at(searchValue.first))
+//         {
+//             case CompareOperator::equal:
+//                 if (value != searchValue.second) {return false;}
+//                 break;
+//             case CompareOperator::like:
+//                 if (!value.toString().toLower().startsWith(searchValue.second.toString().toLower())) {return false;}
+//                 break;
                  
-        }
-    }
+//         }
+//     }
 
-    return true;
-}
+//     return true;
+// }
 
-void DatabaseManager::init()
+QString DatabaseManager::getQueryStr(const std::string queryTemplate, const std::string orderBy, const QueryParams &params) const
 {
-    connect(_mainConnection);
-
-    QSqlQuery query{QSqlDatabase::database(_mainConnection)};
-    query.exec(_queryString + " LIMIT 1");
-    QSqlRecord record = query.record();
-    for (size_t i{0}; i < record.count(); ++i)
-    {
-        QSqlField field = record.field(i);
-        _columnsCompareMap[field.name()] = getOperator(field.metaType().id());
-    }
-}
-
-CompareOperator DatabaseManager::getOperator(int typeId)
-{
-    switch (typeId) {
-        case QMetaType::QString:
-            return CompareOperator::like;
-        case QMetaType::Int: case QMetaType::Double: case QMetaType::QDate:
-        case QMetaType::QTime: case QMetaType::QDateTime: case QMetaType::Bool:
-            return CompareOperator::equal;
-        default:
-            return CompareOperator::equal;
-    }
-}
-
-QString DatabaseManager::getQueryStr(const QueryParams &params) const
-{
-    QString queryStr{_queryString};
+    QString queryStr{QString::fromStdString(queryTemplate)};
     for (const auto& el: params.filter)
     {
-        queryStr += " AND (" + el.first + " " + _compareFunctions.at(_columnsCompareMap.at(el.first)) + " :" + el.first + ")";
+        queryStr += " AND (" + ColumnToStringMap{}[el.first] + " " + ColumnToCompareFunc{}[el.first] + " :" + ColumnToStringMap{}[el.first] + ")";
     }
 
-    queryStr += " " + _orderBy;
+    queryStr += " " + orderBy;
     queryStr += " LIMIT " + QString::number(params.limit);
     queryStr += " OFFSET " + QString::number(params.offset);
 
     return queryStr;
 }
 
-void DatabaseManager::bindValues(QSqlQuery &query, const std::map<QString, QVariant> &values)
+void DatabaseManager::bindValues(QSqlQuery &query, const std::map<Column, QString> &values)
 {
     for (const auto& value: values)
     {
-        QString stringVal = value.second.toString();
+        QString stringVal = value.second;
 
-        if (_columnsCompareMap.at(value.first) == CompareOperator::like) {stringVal += "%";}
-        query.bindValue(":" + value.first, stringVal);
+        if (ColumnToCompareFunc{}[value.first] == "LIKE") {stringVal += "%";}
+        query.bindValue(":" + QString::fromStdString(ColumnToStringMap{}[value.first]), stringVal);
     }
 }
