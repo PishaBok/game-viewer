@@ -1,8 +1,8 @@
 #include <server/request_executors/page.hpp>
 
 PageExecutor::PageExecutor(DatabaseManager &dbManager)
-    : _dbManager{dbManager}, _SqlQueryTemplate{"SELECT name, platform, year, genre, publisher, criticscore, developer, rating FROM game WHERE 1 = 1"},
-    _orderBy{"ORDER BY id, name, platform, year, genre, publisher, criticscore, developer, rating"}
+    : _dbManager{dbManager}, _sqlQueryTemplate{"SELECT id, gamename, platform, year, genre, publisher, criticscore, rating FROM game WHERE 1 = 1"},
+    _orderBy{"ORDER BY gamename, platform, year, genre, publisher, criticscore, rating"}
 {}
 
 std::unique_ptr<Response> PageExecutor::execute()
@@ -17,34 +17,34 @@ std::map<int, clib::TableModel> PageExecutor::startPageThreads()
 {
     const int cacheSize(1); // Параметр создания доп страниц, помимо основной
     const int pagesToMake{(cacheSize * 2) + 1};
-    std::map<int, clib::TableModel> result;
-    std::vector<std::future<std::pair<int, clib::TableModel>>> futureModels(pagesToMake);
+    
+    std::map<int, std::future<clib::TableModel>> tempPages;
+    std::map<int, clib::TableModel> pages;
 
     // Запускаем создание страниц в отдельных потоках
     for (int i{0}; i < pagesToMake; ++i)
     {
         int pageId = (_page + i) - cacheSize;
-        futureModels[i] = std::async(std::launch::async, &PageExecutor::createPage, this, pageId);
+        tempPages[pageId] = std::async(std::launch::async, &PageExecutor::createPage, this, pageId - 1);
     }
 
-    // Дожидаемся создания всех страниц
-    for (int i{0}; i < pagesToMake; ++i)
+    for (auto& tempPage: tempPages)
     {
-        result.insert(futureModels[i].get());
+        pages[tempPage.first] = std::move(tempPage.second.get());
     }
 
-    return std::move(result);
+    return std::move(pages);
 }
 
-std::pair<int, clib::TableModel> PageExecutor::createPage(const int number)
+clib::TableModel PageExecutor::createPage(const int number)
 {
     QString connectionName{"Page_" + clib::generateRandomString()};
-    auto query{_dbManager.getQuery(connectionName, {_SqlQueryTemplate, _orderBy}, {RequestType::page, _filter, 9, 9 * number})};
+    auto query{_dbManager.getQuery(connectionName, {_sqlQueryTemplate, _orderBy}, {RequestType::page, _filter, 9, 9 * number})};
     query->exec();
 
     clib::TableModel tableModel{std::move(*query)};
-    _dbManager.disconnect(connectionName);
 
-    return {number, tableModel};
+    _dbManager.disconnect(connectionName);
+    return tableModel;
 }
 

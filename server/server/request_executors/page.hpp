@@ -15,9 +15,9 @@ public:
 
 private:
     DatabaseManager& _dbManager;
-    const std::string _SqlQueryTemplate;
+    const std::string _sqlQueryTemplate;
     const std::string _orderBy;
 
     std::map<int, clib::TableModel> startPageThreads();
-    std::pair<int, clib::TableModel> createPage(const int number);
+    clib::TableModel createPage(const int number);
 };

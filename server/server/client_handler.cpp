@@ -6,28 +6,62 @@ ClientHandler::ClientHandler(qintptr socketDescriptor, DatabaseManager& dbManage
 {
     _socket->setSocketDescriptor(socketDescriptor);
 
-    connect(_socket.get(), &QTcpSocket::readyRead, this, &ClientHandler::newRequest);
+    connect(_socket.get(), &QTcpSocket::readyRead, this, &ClientHandler::slotReadyRead);
     connect(_socket.get(), &QTcpSocket::disconnected, this, &ClientHandler::socketDisconnected);
 
 }
 
-void ClientHandler::newRequest()
+void ClientHandler::newRequest(const QJsonObject& requestObj)
 {
-    QThread* thread = new QThread;
+    RequestHandler requestHandler{_dbManager};
+    QObject::connect(&requestHandler, &RequestHandler::requestCompleted, this, &ClientHandler::sendResponse);
 
-    // Создание requestHandler
-    RequestHandler* requestHandler = new RequestHandler(_dbManager);
-    requestHandler->setRequest(QJsonDocument::fromJson(_socket->readAll()).object());
-    requestHandler->moveToThread(thread);
+    requestHandler.setRequest(requestObj);
+    requestHandler.processRequest();
 
-    // Подключаем сигналы для управления потоком
-    QObject::connect(thread, &QThread::started, requestHandler, &RequestHandler::processRequest);
-    QObject::connect(requestHandler, &RequestHandler::requestCompleted, this, &ClientHandler::sendResponse);
-    QObject::connect(requestHandler, &RequestHandler::requestCompleted, thread, &QThread::quit);
-    QObject::connect(requestHandler, &RequestHandler::requestCompleted, requestHandler, &QObject::deleteLater);
-    QObject::connect(thread, &QThread::finished, thread, &QObject::deleteLater);
 
-    thread->start();
+
+
+    // QThread* thread = new QThread;
+
+    // // Создание requestHandler
+    // RequestHandler* requestHandler = new RequestHandler(_dbManager);
+    // requestHandler->setRequest(requestObj);
+    // requestHandler->moveToThread(thread);
+
+    // // Подключаем сигналы для управления потоком
+    // QObject::connect(thread, &QThread::started, requestHandler, &RequestHandler::processRequest);
+    // QObject::connect(requestHandler, &RequestHandler::requestCompleted, this, &ClientHandler::sendResponse);
+    // QObject::connect(requestHandler, &RequestHandler::requestCompleted, thread, &QThread::quit);
+    // QObject::connect(requestHandler, &RequestHandler::requestCompleted, requestHandler, &QObject::deleteLater);
+    // QObject::connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+
+    // thread->start();
+}
+
+void ClientHandler::slotReadyRead()
+{
+    while (_socket->bytesAvailable() > 0) 
+    {
+        QByteArray line = _socket->readLine();
+        
+        if (_expectedLength == 0) 
+        {
+            // Получаем длину сообщения
+            _expectedLength = line.toLongLong();
+        } 
+        else 
+        {
+            // Читаем данные, если длина уже известна
+            _buffer.append(line);
+            if (_buffer.size() >= _expectedLength) 
+            {
+                std::thread{&ClientHandler::newRequest, this, QJsonDocument::fromJson(_buffer).object()}.detach();
+                _buffer.clear();
+                _expectedLength = 0; // Сбрасываем
+            }
+        }
+    }
 }
 
 void ClientHandler::sendResponse(const QJsonDocument& response)
@@ -45,59 +79,3 @@ void ClientHandler::socketDisconnected()
     emit finished(QString::number(_descriptor));
 }
 
-// void ClientHandler::newCLient(qintptr socketDescriptor)
-// {
-//     std::thread([socketDescriptor, this]()
-//     {
-//         // Создание цикла обработки событий
-//         QEventLoop loop;
-
-//         _clientList[socketDescriptor] = initClient(socketDescriptor, &loop);
-
-//         // Запуск цикла обработки событий
-//         loop.exec();
-
-//         qDebug() << "socket disconnected!";
-//         _clientList[socketDescriptor]->disconnectFromHost();
-
-//         _clientList.erase(socketDescriptor);
-
-//     }).detach();
-// }
-
-// std::unique_ptr<QTcpSocket> ClientHandler::initClient(qintptr socketDescriptor, QEventLoop* loop)
-// {
-//     // INITIALIZE
-//     std::unique_ptr<QTcpSocket> socket(std::make_unique<QTcpSocket>());
-//     if (!socket->setSocketDescriptor(socketDescriptor))
-//     {
-//         qDebug() << "Failed to set socket descriptor: " << socketDescriptor;
-//     }
-
-//     // CONNECT
-//     connect(socket.get(), &QTcpSocket::readyRead, [dbManager = _dbManager, socketPtr = socket.get()]()
-//     {
-//         try
-//         {
-//             // Получение запроса
-//             QByteArray data = socketPtr->readAll();
-//             Request request(QJsonDocument::fromJson(data).object(), dbManager);
-//             // Отправка ответа
-//             Response response = request.process();
-//             socketPtr->write(response.toJson().toJson());
-//         }
-//         catch(const std::invalid_argument& e)
-//         {
-//             qDebug() << "Error creating request: " << e.what();
-//         }
-//     });
-//     connect(socket.get(), &QTcpSocket::disconnected, [loop]
-//     {
-//         loop->quit();
-//     });
-
-//     // QByteArray data("Hello from server!");
-//     // socket->write(data);
-
-//     return std::move(socket);
-// }

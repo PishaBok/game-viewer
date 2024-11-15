@@ -13,7 +13,6 @@
 #include <libcommon/functions.hpp>
 #include <libcommon/columns.hpp>
 #include <libcommon/request_types.hpp>
-#include <server/column_to_comparefunc.hpp>
 
 struct ConnectionParams
 {
@@ -46,12 +45,12 @@ public:
 
     //bool compare(const QSqlQuery& data, const std::map<QString, QVariant>& search);
 private:
+    // Настройки менеджера
     ConnectionParams _dbParams;
     QString _mainConnection;
 
-    std::vector<QString> _activeConnections;
-
     std::mutex _connectionsMutex;
+
 
     QString getQueryStr(const std::string queryTemplate, const std::string orderBy, const QueryParams& params) const;
     void bindValues(QSqlQuery& query, const std::map<Column, QString>& values); 

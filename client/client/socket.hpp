@@ -22,7 +22,6 @@ private:
     qint64 _expectedLength;
     QByteArray _buffer;
 
-    QJsonObject _testRequest;
 public slots:
     void slotReadyRead();
     void sendToServer(const QByteArray& message);

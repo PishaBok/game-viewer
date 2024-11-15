@@ -1,58 +1,70 @@
 #include <client/client_engine.hpp>
-#include "client_engine.hpp"
-
 
 ClientEngine::ClientEngine(QObject *parent)
-    : QObject{parent}, _currentPage{1},
-    _buttonToFunc
-    {
-        {Button::stepBack, std::bind(&ClientEngine::stepBack, this)},
-        {Button::stepForward, std::bind(&ClientEngine::stepForward, this)},
-        {Button::filter, std::bind(&ClientEngine::filterButton, this)},
-        {Button::search, std::bind(&ClientEngine::searchButton, this)}
-    },
+    : QObject{parent}, _recordsOnPage{9}, _currentPage{1},
     _responseToFunc
     {
-        {RequestType::page, std::bind(&ClientEngine::pageResponse, this, std::placeholders::_1)}
+        {RequestType::page, std::bind(&ClientEngine::pageResponse, this, std::placeholders::_1)},
+        {RequestType::pageCount, std::bind(&ClientEngine::pageCountResponse, this, std::placeholders::_1)}
+    },
+    _responseFactory
+    {
+        {RequestType::page, [](){return std::make_unique<PageResponse>();}},
+        {RequestType::pageCount, [](){return std::make_unique<PageCountResponse>();}}
     }
+
 {}
 
 ClientEngine::~ClientEngine()
 {}
 
-void ClientEngine::initSocket()
+void ClientEngine::start()
 {
     _socket = std::make_unique<Socket>("localhost", 9999);
 
     connect(this, &ClientEngine::sendToServer, _socket.get(), &Socket::sendToServer);
     connect(_socket.get(), &Socket::processResponse, this, &ClientEngine::processResponse);
 
-    pageButton();
+    page(_currentPage);
+    pageCount();
 }
 
-void ClientEngine::processButton(const Button button)
-{
-    _buttonToFunc[button]();
-}
 
-void ClientEngine::pageButton()
+
+void ClientEngine::page(const int pageNumber)
 {
+    // Проверка на выход за границы
+    if (pageNumber < 1 || pageNumber > _pageCount) {return;}
+    _currentPage = pageNumber;
+
     // Поиск в кэше
-    if (findInCache(_currentPage)) {return;}
-    // Создание запроса
-    PageRequest request(_currentPage, _filterMap);
+    if (findInCache(pageNumber)) {return;}
+
     // Отправка запроса на сервер
+    PageRequest request(pageNumber, _filterMap);
     emit sendToServer(QJsonDocument(request.serialize()).toJson());
 }
 
-void ClientEngine::filterButton()
+void ClientEngine::filter(const std::map<Column, QString>& filter)
+{
+    if (filter == _filterMap) {return;}
+
+    _filterMap = filter;
+    _savedPages.clear();
+
+    page(_currentPage);
+    pageCount();
+}
+
+void ClientEngine::search(const std::map<Column, QString>& search)
 {
 
 }
 
-void ClientEngine::searchButton()
+void ClientEngine::pageCount()
 {
-
+    PageCountRequest request(_recordsOnPage, _filterMap);
+    emit sendToServer(QJsonDocument(request.serialize()).toJson());
 }
 
 
@@ -83,29 +95,21 @@ void ClientEngine::pageResponse(const std::unique_ptr<Response>& response)
     }
 
     emit updatePage(_savedPages.at(_currentPage));
+    emit updatePageCounter(QString("%1/%2").arg(QString::number(_currentPage), QString::number(_pageCount)));
 }
 
-
-
-
-
-void ClientEngine::stepBack()
+void ClientEngine::pageCountResponse(const std::unique_ptr<Response>& response)
 {
-    if (_currentPage > 1)
-    {
-        --_currentPage;
-        pageButton();
-    }
+    QJsonObject data = response->data();
+    _pageCount = data.value("pageCount").toInt();
+    
+    emit updatePageCounter(QString("%1/%2").arg(QString::number(_currentPage), QString::number(_pageCount)));
 }
 
-void ClientEngine::stepForward()
-{
-    if (_currentPage < _pageCount)
-    {
-        ++_currentPage;
-        pageButton();
-    }
-}
+
+
+
+
 
 bool ClientEngine::findInCache(const int pageN)
 {
@@ -113,6 +117,7 @@ bool ClientEngine::findInCache(const int pageN)
     if (found != _savedPages.end())
     {
         emit updatePage(found->second);
+        emit updatePageCounter(QString("%1/%2").arg(QString::number(_currentPage), QString::number(_pageCount)));
         return true;
     }
 

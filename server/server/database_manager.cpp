@@ -5,12 +5,7 @@ DatabaseManager::DatabaseManager(ConnectionParams conParams, QObject* parent) :
 {}
 
 DatabaseManager::~DatabaseManager()
-{
-    for (const QString& con: _activeConnections)
-    {
-        disconnect(con);
-    }
-}
+{}
 
 
 bool DatabaseManager::connect(const QString &conName)
@@ -24,8 +19,6 @@ bool DatabaseManager::connect(const QString &conName)
     db.setUserName(_dbParams.user);
     db.setPassword(_dbParams.password);
 
-    _activeConnections.push_back(conName);
-
     return db.open();
 }
 
@@ -33,22 +26,13 @@ void DatabaseManager::disconnect(const QString& connection)
 {
     std::scoped_lock<std::mutex> lock(_connectionsMutex);
 
-    auto found = std::find(_activeConnections.begin(), _activeConnections.end(), connection);
-    if (!(found == _activeConnections.end()))
-    {
-        QSqlDatabase::database(connection).close();
-        QSqlDatabase::removeDatabase(connection);
-        _activeConnections.erase(found);
-    }
+    QSqlDatabase::database(connection).close();
+    QSqlDatabase::removeDatabase(connection);
 }
 
 std::unique_ptr<QSqlQuery> DatabaseManager::getQuery(const QString& connectionName, const std::pair<std::string, std::string>& sqlQuery, const QueryParams& params)
 {
-    auto found = std::find(_activeConnections.begin(), _activeConnections.end(), connectionName);
-    if (found == _activeConnections.end())
-    {
-        connect(connectionName);
-    }
+    connect(connectionName);
 
     auto [queryTemplate, orderBy] = sqlQuery;
     auto query{std::make_unique<QSqlQuery>(QSqlDatabase::database(connectionName))};
@@ -86,12 +70,13 @@ QString DatabaseManager::getQueryStr(const std::string queryTemplate, const std:
     QString queryStr{QString::fromStdString(queryTemplate)};
     for (const auto& el: params.filter)
     {
+        if (el.second == "") {continue;}
         queryStr += " AND (" + ColumnToStringMap{}[el.first] + " " + ColumnToCompareFunc{}[el.first] + " :" + ColumnToStringMap{}[el.first] + ")";
     }
 
-    queryStr += " " + orderBy;
-    queryStr += " LIMIT " + QString::number(params.limit);
-    queryStr += " OFFSET " + QString::number(params.offset);
+    queryStr += !orderBy.empty() ? " " + QString::fromStdString(orderBy) : "";
+    queryStr += params.limit != 0 ? " LIMIT " + QString::number(params.limit) : "";
+    queryStr += params.offset != 0 ? " OFFSET " + QString::number(params.offset) : "";
 
     return queryStr;
 }

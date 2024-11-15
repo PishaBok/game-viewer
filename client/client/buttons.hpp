@@ -2,8 +2,7 @@
 
 enum class Button
 {
-    stepForward,
-    stepBack,
-    search,
-    filter
+    page,
+    filter,
+    search
 };

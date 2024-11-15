@@ -17,10 +17,14 @@ private:
     DatabaseManager& _dbManager;
     std::unique_ptr<QTcpSocket> _socket;
     qintptr _descriptor;
+    qint64 _expectedLength;
+    QByteArray _buffer;
     
 
+
+    void newRequest(const QJsonObject& requestObj);
 private slots:
-    void newRequest();
+    void slotReadyRead();
     void sendResponse(const QJsonDocument& response);
     void socketDisconnected();
 signals:

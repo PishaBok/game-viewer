@@ -4,6 +4,7 @@
 
 #include <libcommon/request_types.hpp>
 #include <server/request_executors/page.hpp>
+#include <server/request_executors/page_count.hpp>
 
 class RequestHandler: public QObject
 {
@@ -18,7 +19,8 @@ private:
 
     std::map<RequestType, std::function<std::unique_ptr<Request>(DatabaseManager&)>> _requestFactory
     {
-        {RequestType::page, [](DatabaseManager& dbManager) {return std::make_unique<PageExecutor>(dbManager);}}
+        {RequestType::page, [](DatabaseManager& dbManager) {return std::make_unique<PageExecutor>(dbManager);}},
+        {RequestType::pageCount, [](DatabaseManager& dbManager) {return std::make_unique<PageCountExecutor>(dbManager);}},
     };
 
     std::unique_ptr<Request> _requestInProcess;

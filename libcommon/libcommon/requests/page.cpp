@@ -1,5 +1,4 @@
 #include <libcommon/requests/page.hpp>
-#include "page.hpp"
 
 PageRequest::PageRequest()
     : Request(RequestType::page)

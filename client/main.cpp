@@ -6,7 +6,9 @@
 #include <QDir>
 
 #include <client/client_engine.hpp>
+#include <client/command.hpp>
 #include <client/client.hpp>
+
 
 int main(int argc, char** argv)
 {
@@ -15,21 +17,18 @@ int main(int argc, char** argv)
     file.open(QFile::ReadOnly);
     app.setStyleSheet(file.readAll());
 
-    Client wd;
+    // Создание движка
+    ClientEngine engine;
 
-    QThread* engineThread = new QThread;
-    ClientEngine* engine = new ClientEngine;
-    engine->moveToThread(engineThread);
+    PageCommand pageCommand(&engine);
+    FilterCommand filterCommand(&engine);
+    Invoker invoker;
 
-    QObject::connect(engineThread, &QThread::started, engine, &ClientEngine::initSocket);
-    QObject::connect(&app, &QApplication::aboutToQuit, engineThread, &QThread::quit);
-    QObject::connect(engineThread, &QThread::finished, engine, &QObject::deleteLater);
-    QObject::connect(engineThread, &QThread::finished, engineThread, &QObject::deleteLater);
+    Client wd(&pageCommand, &filterCommand, &invoker); 
+    QObject::connect(&engine, &ClientEngine::updatePage, &wd, &Client::updatePage);
+    QObject::connect(&engine, &ClientEngine::updatePageCounter, &wd, &Client::updatePageCounter);
 
-    QObject::connect(&wd, &Client::processButton, engine, &ClientEngine::processButton);
-    QObject::connect(engine, &ClientEngine::updatePage, &wd, &Client::updatePage);
-
-    engineThread->start();
+    engine.start();
     wd.show();
 
     return app.exec();

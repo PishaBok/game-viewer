@@ -5,5 +5,6 @@ enum class RequestType
     page,
     search,
     signin,
-    login
+    login,
+    pageCount
 };

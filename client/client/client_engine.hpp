@@ -10,6 +10,7 @@
 #include <libcommon/request_types.hpp>
 #include <libcommon/columns.hpp>
 #include <libcommon/requests/page.hpp>
+#include <libcommon/requests/page_count.hpp>
 
 class ClientEngine: public QObject
 {
@@ -18,52 +19,43 @@ public:
     ClientEngine(QObject* parent = nullptr);
     ~ClientEngine();
 
+    void start();
+
+    // Обработчики кнопок
+    void page(const int pageNumber);
+    void filter(const std::map<Column, QString>& filter);
+    void search(const std::map<Column, QString>& search);
+    void pageCount();
 private:
-    std::map<Button, std::function<void()>> _buttonToFunc;
+    std::map<RequestType, std::function<std::unique_ptr<Response>()>> _responseFactory;
     std::map<RequestType, std::function<void(const std::unique_ptr<Response>&)>> _responseToFunc;
-    std::map<RequestType, std::function<std::unique_ptr<Response>()>> _responseFactory
-    {
-        {RequestType::page, []() {return std::make_unique<PageResponse>();}}
-    };
+
+    // Сокет для подключения к серверу
+    std::unique_ptr<Socket> _socket;
 
     // Настройки программы
+    size_t _recordsOnPage;
     int _currentPage;
     std::map<Column, QString> _filterMap;
     std::map<Column, QString> _searchMap;
 
     // Данные от сервера
     int _pageCount{1000};
-    std::map<QString, QString> _columnsType
-    {
-        {"name", "string"},
-        {"platform", "string"},
-        {"year", "int"},
-        {"genre", "string"},
-        {"criticscore", "int"},
-        {"rating", "string"}
-    };
     std::map<int, clib::TableModel> _savedPages;
 
-    // Сокет для подключения к серверу
-    std::unique_ptr<Socket> _socket;
 
-    void stepBack();
-    void stepForward();
+
     bool findInCache(const int pageN);
-
-    // Обработчики кнопок
-    void pageButton();
-    void filterButton();
-    void searchButton();
 
     // Обработчики ответов сервера
     void pageResponse(const std::unique_ptr<Response>& response);
+    void pageCountResponse(const std::unique_ptr<Response>& response);
 public slots:
-    void initSocket();
-    void processButton(const Button button);
     void processResponse(const QJsonObject& json);
 signals:
     void sendToServer(const QByteArray& message);
 
     void updatePage(const clib::TableModel& model);
+    void updatePageCounter(const QString& strForLabel);
 };
+
