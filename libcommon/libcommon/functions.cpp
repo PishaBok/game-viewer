@@ -20,5 +20,39 @@ namespace clib
     return randomString;
     }
 
+
+    bool compareRecordWithSearch(const QSqlRecord& record, const std::map<Column, QString>& search)
+    {
+        for (const auto &[column, searchValue]: search)
+        {
+            QString columnName = QString::fromStdString(columnToStringMap.at(column));
+
+            if (!record.contains(columnName)) {continue;}
+
+            std::string recordValue = record.value(columnName).toString().toStdString();
+
+            if (!comparisonMap.at(column).compareFunc(recordValue, searchValue.toStdString()))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool compareRecordWithSearch(const std::map<Column, QString>& record, const std::map<Column, QString>& search)
+    {
+        for (const auto &[column, searchValue]: search)
+        {
+            if (!record.contains(column)) {continue;}
+
+            std::string recordValue = record.at(column).toStdString();
+
+            if (!comparisonMap.at(column).compareFunc(recordValue, searchValue.toStdString()))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 }
 

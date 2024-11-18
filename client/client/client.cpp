@@ -39,6 +39,7 @@ QLineEdit *Client::createPageLabel() const
 {
     QLineEdit* pageLabel = new QLineEdit(QString("%1/%2").arg("1", "ND"));
     pageLabel->setMaximumHeight(35);
+    pageLabel->setMinimumWidth(65);
     pageLabel->setReadOnly(true);
     pageLabel->setAlignment(Qt::AlignCenter);
     pageLabel->setObjectName("toolBarLineEdit");
@@ -141,11 +142,24 @@ QToolBar *Client::createToolBar()
 
     });
 
+    QPushButton* filter = new QPushButton("Задать фильтр...");
+    _buttonMap[filter] = Button::filter;
+    connect(filter, &QPushButton::clicked, [this, filter]()
+    {
+        std::unique_ptr<FilterDialog> dialog = std::make_unique<FilterDialog>(columnTitles(_filterColumns));
+        if (dialog->exec() == QDialog::Accepted)
+        {
+            _filterCommand->setFilter(stringMapToColumn(dialog->data()));
+            buttonPressed(filter);
+        }
+    });
+
     toolBar->addWidget(stepBack);
     toolBar->addWidget(stepForward);
     toolBar->addWidget(_pageLabel);
     toolBar->addWidget(_searchWidget);
     toolBar->addWidget(search);
+    toolBar->addWidget(filter);
 
     return toolBar;
 }

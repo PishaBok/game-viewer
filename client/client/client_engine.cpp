@@ -12,7 +12,6 @@ ClientEngine::ClientEngine(QObject *parent)
         {RequestType::page, [](){return std::make_unique<PageResponse>();}},
         {RequestType::pageCount, [](){return std::make_unique<PageCountResponse>();}}
     }
-
 {}
 
 ClientEngine::~ClientEngine()
@@ -20,12 +19,13 @@ ClientEngine::~ClientEngine()
 
 void ClientEngine::start()
 {
-    _socket = std::make_unique<Socket>("localhost", 9999);
+    _socket = std::make_unique<Socket>("10.0.2.2", 9999);
 
     connect(this, &ClientEngine::sendToServer, _socket.get(), &Socket::sendToServer);
     connect(_socket.get(), &Socket::processResponse, this, &ClientEngine::processResponse);
 
-    page(_currentPage);
+    PageRequest pageRequest{_currentPage, _filterMap};
+    emit sendToServer(QJsonDocument(pageRequest.serialize()).toJson());
     pageCount();
 }
 
@@ -51,14 +51,15 @@ void ClientEngine::filter(const std::map<Column, QString>& filter)
 
     _filterMap = filter;
     _savedPages.clear();
+    _pageCount = 1000;
 
-    page(_currentPage);
+    page(1);
     pageCount();
 }
 
 void ClientEngine::search(const std::map<Column, QString>& search)
 {
-
+    if (search == _searchMap) {return;}
 }
 
 void ClientEngine::pageCount()

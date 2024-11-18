@@ -8,9 +8,16 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 
-
-#include <libcommon/request_types.hpp>
 #include <libcommon/columns.hpp>
+
+enum class RequestType
+{
+    page,
+    search,
+    signin,
+    login,
+    pageCount
+};
 
 class Response;   
 

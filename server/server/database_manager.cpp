@@ -30,13 +30,12 @@ void DatabaseManager::disconnect(const QString& connection)
     QSqlDatabase::removeDatabase(connection);
 }
 
-std::unique_ptr<QSqlQuery> DatabaseManager::getQuery(const QString& connectionName, const std::pair<std::string, std::string>& sqlQuery, const QueryParams& params)
+std::unique_ptr<QSqlQuery> DatabaseManager::getQuery(const QString& connectionName, const QueryParams& params)
 {
     connect(connectionName);
 
-    auto [queryTemplate, orderBy] = sqlQuery;
     auto query{std::make_unique<QSqlQuery>(QSqlDatabase::database(connectionName))};
-    QString queryStr{getQueryStr(queryTemplate, orderBy, params)};
+    QString queryStr{getQueryStr(params)};
 
     query->prepare(queryStr);
     bindValues(*query, params.filter);
@@ -44,37 +43,16 @@ std::unique_ptr<QSqlQuery> DatabaseManager::getQuery(const QString& connectionNa
     return std::move(query);
 }
 
-// bool DatabaseManager::compare(const QSqlQuery &data, const std::map<QString, QVariant> &search)
-// {
-//     for (const auto& searchValue: search)
-//     {
-//         QVariant value = data.value(searchValue.first);
-
-//         switch(_columnsCompareMap.at(searchValue.first))
-//         {
-//             case CompareOperator::equal:
-//                 if (value != searchValue.second) {return false;}
-//                 break;
-//             case CompareOperator::like:
-//                 if (!value.toString().toLower().startsWith(searchValue.second.toString().toLower())) {return false;}
-//                 break;
-                 
-//         }
-//     }
-
-//     return true;
-// }
-
-QString DatabaseManager::getQueryStr(const std::string queryTemplate, const std::string orderBy, const QueryParams &params) const
+QString DatabaseManager::getQueryStr(const QueryParams &params) const
 {
-    QString queryStr{QString::fromStdString(queryTemplate)};
+    QString queryStr{QString::fromStdString(params.strQueryTemplate)};
     for (const auto& el: params.filter)
     {
         if (el.second == "") {continue;}
-        queryStr += " AND (" + ColumnToStringMap{}[el.first] + " " + ColumnToCompareFunc{}[el.first] + " :" + ColumnToStringMap{}[el.first] + ")";
+        queryStr += " AND (" + columnToStringMap.at(el.first) + " " + comparisonMap.at(el.first).compareWord + " :" + columnToStringMap.at(el.first) + ")";
     }
 
-    queryStr += !orderBy.empty() ? " " + QString::fromStdString(orderBy) : "";
+    queryStr += !params.orderBy.empty() ? " " + QString::fromStdString(params.orderBy) : "";
     queryStr += params.limit != 0 ? " LIMIT " + QString::number(params.limit) : "";
     queryStr += params.offset != 0 ? " OFFSET " + QString::number(params.offset) : "";
 
@@ -87,7 +65,26 @@ void DatabaseManager::bindValues(QSqlQuery &query, const std::map<Column, QStrin
     {
         QString stringVal = value.second;
 
-        if (ColumnToCompareFunc{}[value.first] == "LIKE") {stringVal += "%";}
-        query.bindValue(":" + QString::fromStdString(ColumnToStringMap{}[value.first]), stringVal);
+        if (comparisonMap.at(value.first).compareWord == "LIKE") {stringVal += "%";}
+        query.bindValue(":" + QString::fromStdString(columnToStringMap.at(value.first)), stringVal);
     }
+}
+
+
+size_t DatabaseManager::recordCount(const std::string& tableName, const std::map<Column, QString> filter)
+{
+    QString connectionName{"RecordCount_ " + clib::generateRandomString()};
+    std::string strQuery{"SELECT COUNT(*) FROM "+ tableName + " WHERE 1 = 1"};
+
+    auto query = getQuery(connectionName, {RequestType::pageCount, strQuery, "", filter, 0, 0});
+    query->exec();
+
+    size_t recordCount{0};
+    if (query->next()) 
+    {
+        recordCount = query->value(0).toUInt(); 
+    }
+
+    disconnect(connectionName);
+    return recordCount;
 }

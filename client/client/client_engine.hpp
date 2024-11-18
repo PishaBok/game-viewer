@@ -7,7 +7,6 @@
 
 #include <client/socket.hpp>
 #include <client/buttons.hpp>
-#include <libcommon/request_types.hpp>
 #include <libcommon/columns.hpp>
 #include <libcommon/requests/page.hpp>
 #include <libcommon/requests/page_count.hpp>
@@ -36,12 +35,15 @@ private:
     // Настройки программы
     size_t _recordsOnPage;
     int _currentPage;
+    int _currentSearchRecord;
     std::map<Column, QString> _filterMap;
     std::map<Column, QString> _searchMap;
 
     // Данные от сервера
-    int _pageCount{1000};
-    std::map<int, clib::TableModel> _savedPages;
+    int _pageCount;  // Количество страниц
+    std::map<int, clib::TableModel> _savedPages;  // Скачанные страницы
+    int _searchRecordCount; // Количество записей соответстующих поиску
+    std::vector<int> _searchPageNumbers; // Страницы на которых есть записи соответствующие поиску
 
 
 

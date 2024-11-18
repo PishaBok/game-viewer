@@ -12,7 +12,7 @@
 #include <QSqlError>
 #include <libcommon/functions.hpp>
 #include <libcommon/columns.hpp>
-#include <libcommon/request_types.hpp>
+#include <libcommon/requests/base.hpp>
 
 struct ConnectionParams
 {
@@ -25,6 +25,8 @@ struct ConnectionParams
 struct QueryParams
 {
     RequestType request;
+    std::string strQueryTemplate;
+    std::string orderBy;
     std::map<Column, QString> filter;
     int limit;
     int offset;
@@ -41,9 +43,8 @@ public:
     // Интерфейс
     bool connect(const QString& conName);
     void disconnect(const QString& connection);
-    std::unique_ptr<QSqlQuery> getQuery(const QString& connectionName, const std::pair<std::string, std::string>& sqlQuery, const QueryParams& params);
-
-    //bool compare(const QSqlQuery& data, const std::map<QString, QVariant>& search);
+    std::unique_ptr<QSqlQuery> getQuery(const QString& connectionName, const QueryParams& params);
+    size_t recordCount(const std::string& tableName, const std::map<Column, QString> filter);
 private:
     // Настройки менеджера
     ConnectionParams _dbParams;
@@ -52,6 +53,6 @@ private:
     std::mutex _connectionsMutex;
 
 
-    QString getQueryStr(const std::string queryTemplate, const std::string orderBy, const QueryParams& params) const;
+    QString getQueryStr(const QueryParams& params) const;
     void bindValues(QSqlQuery& query, const std::map<Column, QString>& values); 
 };

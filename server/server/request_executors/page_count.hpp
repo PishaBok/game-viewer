@@ -13,8 +13,6 @@ public:
 
 private:
     DatabaseManager& _dbManager;
-    const std::string _sqlQueryTemplate;
-
 
     size_t pageCount() const;
 };

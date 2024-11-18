@@ -45,7 +45,7 @@ void Socket::sendToServer(const QByteArray& message)
 {
     qint64 length{message.size()};
     QByteArray lengthData = QByteArray::number(length).append('\n');
-
+    
     _tcpSocket->write(lengthData);
     _tcpSocket->write(message);
 }

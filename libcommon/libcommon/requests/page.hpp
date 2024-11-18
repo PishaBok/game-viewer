@@ -3,8 +3,6 @@
 #include <libcommon/requests/base.hpp>
 #include <libcommon/table_model.hpp>
 
-class PageResponse;
-
 class PageRequest: public Request
 {
 public:

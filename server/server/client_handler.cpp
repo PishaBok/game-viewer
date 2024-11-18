@@ -13,30 +13,13 @@ ClientHandler::ClientHandler(qintptr socketDescriptor, DatabaseManager& dbManage
 
 void ClientHandler::newRequest(const QJsonObject& requestObj)
 {
+    qDebug() << "New Request";
+
     RequestHandler requestHandler{_dbManager};
     QObject::connect(&requestHandler, &RequestHandler::requestCompleted, this, &ClientHandler::sendResponse);
 
     requestHandler.setRequest(requestObj);
     requestHandler.processRequest();
-
-
-
-
-    // QThread* thread = new QThread;
-
-    // // Создание requestHandler
-    // RequestHandler* requestHandler = new RequestHandler(_dbManager);
-    // requestHandler->setRequest(requestObj);
-    // requestHandler->moveToThread(thread);
-
-    // // Подключаем сигналы для управления потоком
-    // QObject::connect(thread, &QThread::started, requestHandler, &RequestHandler::processRequest);
-    // QObject::connect(requestHandler, &RequestHandler::requestCompleted, this, &ClientHandler::sendResponse);
-    // QObject::connect(requestHandler, &RequestHandler::requestCompleted, thread, &QThread::quit);
-    // QObject::connect(requestHandler, &RequestHandler::requestCompleted, requestHandler, &QObject::deleteLater);
-    // QObject::connect(thread, &QThread::finished, thread, &QObject::deleteLater);
-
-    // thread->start();
 }
 
 void ClientHandler::slotReadyRead()
@@ -44,7 +27,6 @@ void ClientHandler::slotReadyRead()
     while (_socket->bytesAvailable() > 0) 
     {
         QByteArray line = _socket->readLine();
-        
         if (_expectedLength == 0) 
         {
             // Получаем длину сообщения

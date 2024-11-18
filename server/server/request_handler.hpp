@@ -2,9 +2,9 @@
 
 #include <QObject>
 
-#include <libcommon/request_types.hpp>
 #include <server/request_executors/page.hpp>
 #include <server/request_executors/page_count.hpp>
+#include <server/request_executors/search.hpp>
 
 class RequestHandler: public QObject
 {

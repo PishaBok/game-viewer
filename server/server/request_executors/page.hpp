@@ -12,7 +12,6 @@ public:
     virtual ~PageExecutor() = default;
 
     std::unique_ptr<Response> execute() override;
-
 private:
     DatabaseManager& _dbManager;
     const std::string _sqlQueryTemplate;

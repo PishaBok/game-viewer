@@ -1,7 +1,7 @@
 #include <server/request_executors/page.hpp>
 
 PageExecutor::PageExecutor(DatabaseManager &dbManager)
-    : _dbManager{dbManager}, _sqlQueryTemplate{"SELECT id, gamename, platform, year, genre, publisher, criticscore, rating FROM game WHERE 1 = 1"},
+    : _dbManager{dbManager}, _sqlQueryTemplate{"SELECT gameid, gamename, platform, year, genre, publisher, criticscore, rating FROM game WHERE 1 = 1"},
     _orderBy{"ORDER BY gamename, platform, year, genre, publisher, criticscore, rating"}
 {}
 
@@ -39,7 +39,8 @@ std::map<int, clib::TableModel> PageExecutor::startPageThreads()
 clib::TableModel PageExecutor::createPage(const int number)
 {
     QString connectionName{"Page_" + clib::generateRandomString()};
-    auto query{_dbManager.getQuery(connectionName, {_sqlQueryTemplate, _orderBy}, {RequestType::page, _filter, 9, 9 * number})};
+    auto query{_dbManager.getQuery(connectionName, 
+                {RequestType::page, _sqlQueryTemplate, _orderBy, _filter, 9, 9 * number})};
     query->exec();
 
     clib::TableModel tableModel{std::move(*query)};
