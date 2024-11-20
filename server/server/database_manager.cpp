@@ -8,10 +8,15 @@ DatabaseManager::~DatabaseManager()
 {}
 
 
+QString DatabaseManager::generateConnectionName() const
+{
+    std::ostringstream oss;
+    oss << std::this_thread::get_id();  // Получаем текущий thread id
+    return QString("db_connection_%1").arg(QString::fromStdString(oss.str()));
+}
+
 bool DatabaseManager::connect(const QString &conName)
 {
-    std::scoped_lock<std::mutex> lock(_connectionsMutex);
-
     QSqlDatabase db = QSqlDatabase::addDatabase("QPSQL", conName);
 
     db.setDatabaseName(_dbParams.database);
@@ -24,24 +29,38 @@ bool DatabaseManager::connect(const QString &conName)
 
 void DatabaseManager::disconnect(const QString& connection)
 {
-    std::scoped_lock<std::mutex> lock(_connectionsMutex);
-
     QSqlDatabase::database(connection).close();
     QSqlDatabase::removeDatabase(connection);
 }
 
-std::unique_ptr<QSqlQuery> DatabaseManager::getQuery(const QString& connectionName, const QueryParams& params)
+std::unique_ptr<QSqlQuery> DatabaseManager::getQuery(const QueryParams& params)
 {
+    std::scoped_lock<std::mutex> lock(_connectionsMutex);
+
+    QString connectionName{generateConnectionName()};
     connect(connectionName);
-
     auto query{std::make_unique<QSqlQuery>(QSqlDatabase::database(connectionName))};
-    QString queryStr{getQueryStr(params)};
+    _queryMap[query.get()] = connectionName;
 
+    QString queryStr{getQueryStr(params)};
     query->prepare(queryStr);
     bindValues(*query, params.filter);
 
     return std::move(query);
 }
+
+void DatabaseManager::cleanupQuery(QSqlQuery* query)
+{
+    std::scoped_lock<std::mutex> lock(_connectionsMutex);
+
+    QString connectionName = _queryMap.at(query);
+    if (!connectionName.isEmpty())
+    {
+        disconnect(connectionName);
+        _queryMap.erase(query);
+    }
+}
+
 
 QString DatabaseManager::getQueryStr(const QueryParams &params) const
 {
@@ -73,10 +92,9 @@ void DatabaseManager::bindValues(QSqlQuery &query, const std::map<Column, QStrin
 
 size_t DatabaseManager::recordCount(const std::string& tableName, const std::map<Column, QString> filter)
 {
-    QString connectionName{"RecordCount_ " + clib::generateRandomString()};
     std::string strQuery{"SELECT COUNT(*) FROM "+ tableName + " WHERE 1 = 1"};
 
-    auto query = getQuery(connectionName, {RequestType::pageCount, strQuery, "", filter, 0, 0});
+    auto query = getQuery({strQuery, "", filter, 0, 0});
     query->exec();
 
     size_t recordCount{0};
@@ -85,6 +103,6 @@ size_t DatabaseManager::recordCount(const std::string& tableName, const std::map
         recordCount = query->value(0).toUInt(); 
     }
 
-    disconnect(connectionName);
+    cleanupQuery(query.get());
     return recordCount;
 }

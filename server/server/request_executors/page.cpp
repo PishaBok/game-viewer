@@ -38,14 +38,12 @@ std::map<int, clib::TableModel> PageExecutor::startPageThreads()
 
 clib::TableModel PageExecutor::createPage(const int number)
 {
-    QString connectionName{"Page_" + clib::generateRandomString()};
-    auto query{_dbManager.getQuery(connectionName, 
-                {RequestType::page, _sqlQueryTemplate, _orderBy, _filter, 9, 9 * number})};
+    auto query{_dbManager.getQuery({_sqlQueryTemplate, _orderBy, _filter, 9, 9 * number})};
     query->exec();
 
     clib::TableModel tableModel{std::move(*query)};
 
-    _dbManager.disconnect(connectionName);
+    _dbManager.cleanupQuery(query.get());
     return tableModel;
 }
 

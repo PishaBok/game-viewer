@@ -56,7 +56,7 @@ QWidget *Client::createFilterLine() const
 {
     QWidget* filterLine = new QWidget;
     filterLine->setMaximumHeight(30);
-    filterLine->setVisible(false);
+    filterLine->setVisible(true);
 
     QHBoxLayout* layout = new QHBoxLayout;
     layout->addWidget(new QLabel("Filter1"));
@@ -88,21 +88,21 @@ QMenuBar *Client::createMenuBar()
 
     QMenu* walkTo = new QMenu("Переход");
     QAction* walkToAction = new QAction("Перейти к странице...");
-    _buttonMap[walkToAction] = Button::page;
+    //_buttonMap[walkToAction] = Button::page;
     //connect(walkToAction, &QAction::triggered, this, &Client::buttonPressed);
 
     QMenu* filter = new QMenu("Фильтр");
     QAction* filterAction = new QAction("Задать фильтр...");
-    _buttonMap[filterAction] = Button::filter;
-    connect(filterAction, &QAction::triggered, [this, filterAction]()
-    {
-        std::unique_ptr<FilterDialog> dialog = std::make_unique<FilterDialog>(columnTitles(_filterColumns));
-        if (dialog->exec() == QDialog::Accepted)
-        {
-            _filterCommand->setFilter(stringMapToColumn(dialog->data()));
-            buttonPressed(filterAction);
-        }
-    });
+    // _buttonMap[filterAction] = Button::filter;
+    // connect(filterAction, &QAction::triggered, [this, filterAction]()
+    // {
+    //     std::unique_ptr<FilterDialog> dialog = std::make_unique<FilterDialog>(columnTitles(_filterColumns));
+    //     if (dialog->exec() == QDialog::Accepted)
+    //     {
+    //         _filterCommand->setFilter(stringMapToColumn(dialog->data()));
+    //         buttonPressed(filterAction);
+    //     }
+    // });
 
     //Заполняет меню бар элементами
     fileMenu->addAction(openAct);
@@ -136,7 +136,7 @@ QToolBar *Client::createToolBar()
     });
 
     QPushButton* search = new QPushButton(QString(QChar(0xD83D)) + QChar(0xDD0D));
-    //_buttonsMap[search] = Button::search;
+    _buttonMap[search] = Button::search;
     connect(search, &QPushButton::clicked, [this]()
     {
 
@@ -149,7 +149,7 @@ QToolBar *Client::createToolBar()
         std::unique_ptr<FilterDialog> dialog = std::make_unique<FilterDialog>(columnTitles(_filterColumns));
         if (dialog->exec() == QDialog::Accepted)
         {
-            _filterCommand->setFilter(stringMapToColumn(dialog->data()));
+            _filterCommand->setFilter(stringMapToColumnMap(dialog->data()));
             buttonPressed(filter);
         }
     });
@@ -176,7 +176,7 @@ QStringList Client::columnTitles(const std::vector<Column> &columns) const
     return titles;
 }
 
-std::map<Column, QString> Client::stringMapToColumn(const std::map<QString, QString> stringMap) const
+std::map<Column, QString> Client::stringMapToColumnMap(const std::map<QString, QString> stringMap) const
 {
     std::map<Column, QString> resultMap;
 
@@ -236,5 +236,14 @@ void Client::updatePage(const clib::TableModel &model)
         GameCard* gameCard = new GameCard({model.data(i, "gamename").toString(), model.data(i, "platform").toString(), model.data(i, "year").toInt(),
                                             model.data(i, "genre").toString(), model.data(i, "criticscore").toInt(), model.data(i, "rating").toString()});
         layout->addWidget(gameCard, i / 3, i % 3);
+    }
+}
+
+void Client::setEnabledButtons(const bool flag)
+{
+    for(auto& objPtr: _buttonMap)
+    {
+        QPushButton* button = static_cast<QPushButton*>(objPtr.first);
+        button->setEnabled(flag);
     }
 }

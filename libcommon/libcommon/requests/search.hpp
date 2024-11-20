@@ -1,5 +1,7 @@
 #pragma once
 
+#include <set>
+
 #include <libcommon/requests/base.hpp>
 
 class SearchRequest: public Request
@@ -30,7 +32,8 @@ class SearchResponse: public Response
 {
 public:
     SearchResponse();
-    SearchResponse(const int recordCount, const std::vector<int>& pageNumbers);
+    SearchResponse(const int recordCount, const std::set<int>& pageNumbers);
+    SearchResponse(const std::pair<int, std::set<int>>& searcResult);
     virtual ~SearchResponse() = default;
 
     QJsonObject serialize() const override;
@@ -38,5 +41,5 @@ public:
 
 private:
     int _recordCount;
-    std::vector<int> _pageNumbers;
+    std::set<int> _pageNumbers;
 };

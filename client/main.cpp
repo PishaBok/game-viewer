@@ -27,6 +27,7 @@ int main(int argc, char** argv)
     Client wd(&pageCommand, &filterCommand, &invoker); 
     QObject::connect(&engine, &ClientEngine::updatePage, &wd, &Client::updatePage);
     QObject::connect(&engine, &ClientEngine::updatePageCounter, &wd, &Client::updatePageCounter);
+    QObject::connect(&engine, &ClientEngine::setEnabledButtons, &wd, &Client::setEnabledButtons);
 
     engine.start();
     wd.show();

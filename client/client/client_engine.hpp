@@ -53,11 +53,13 @@ private:
     void pageResponse(const std::unique_ptr<Response>& response);
     void pageCountResponse(const std::unique_ptr<Response>& response);
 public slots:
+    void connectedToServer();
     void processResponse(const QJsonObject& json);
 signals:
     void sendToServer(const QByteArray& message);
 
     void updatePage(const clib::TableModel& model);
     void updatePageCounter(const QString& strForLabel);
+    void setEnabledButtons(const bool flag);
 };
 

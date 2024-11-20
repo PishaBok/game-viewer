@@ -21,6 +21,7 @@ private:
     {
         {RequestType::page, [](DatabaseManager& dbManager) {return std::make_unique<PageExecutor>(dbManager);}},
         {RequestType::pageCount, [](DatabaseManager& dbManager) {return std::make_unique<PageCountExecutor>(dbManager);}},
+        {RequestType::search, [](DatabaseManager& dbManager) {return std::make_unique<SearchExecutor>(dbManager);}}
     };
 
     std::unique_ptr<Request> _requestInProcess;

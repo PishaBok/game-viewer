@@ -2,7 +2,8 @@
 
 
 ClientHandler::ClientHandler(qintptr socketDescriptor, DatabaseManager& dbManager, QObject* parent) 
-    : QObject(parent), _socket{std::make_unique<QTcpSocket>(this)}, _descriptor{socketDescriptor}, _dbManager{dbManager}
+    : QObject(parent), _socket{std::make_unique<QTcpSocket>(this)}, _descriptor{socketDescriptor}, _dbManager{dbManager},
+    _expectedLength{0}, _buffer{}
 {
     _socket->setSocketDescriptor(socketDescriptor);
 

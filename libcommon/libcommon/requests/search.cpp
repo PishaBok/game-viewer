@@ -87,8 +87,12 @@ SearchResponse::SearchResponse()
     : Response(RequestType::search)
 {}
 
-SearchResponse::SearchResponse(const int recordCount, const std::vector<int>& pageNumbers)
+SearchResponse::SearchResponse(const int recordCount, const std::set<int>& pageNumbers)
     : Response(RequestType::search), _recordCount{recordCount}, _pageNumbers{pageNumbers}
+{}
+
+SearchResponse::SearchResponse(const std::pair<int, std::set<int>>& searcResult)
+    : Response(RequestType::search), _recordCount{searcResult.first}, _pageNumbers{searcResult.second}
 {}
 
 QJsonObject SearchResponse::serialize() const
@@ -122,6 +126,6 @@ void SearchResponse::deserialize(const QJsonObject& jsonObject)
 
     for (const QJsonValue& numberValue: dataObj.value("pageNumbers").toArray())
     {
-        _pageNumbers.push_back(numberValue.toInt());
+        _pageNumbers.insert(numberValue.toInt());
     }
 }

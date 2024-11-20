@@ -19,16 +19,21 @@ ClientEngine::~ClientEngine()
 
 void ClientEngine::start()
 {
-    _socket = std::make_unique<Socket>("10.0.2.2", 9999);
+    _socket = std::make_unique<Socket>("localhost", 9999);
 
+    connect(_socket->tcpSocketPtr(), &QTcpSocket::connected, this, &ClientEngine::connectedToServer);
     connect(this, &ClientEngine::sendToServer, _socket.get(), &Socket::sendToServer);
     connect(_socket.get(), &Socket::processResponse, this, &ClientEngine::processResponse);
 
+    _socket->connectToHost();
+}
+
+void ClientEngine::connectedToServer()
+{
     PageRequest pageRequest{_currentPage, _filterMap};
     emit sendToServer(QJsonDocument(pageRequest.serialize()).toJson());
     pageCount();
 }
-
 
 
 void ClientEngine::page(const int pageNumber)
@@ -39,6 +44,8 @@ void ClientEngine::page(const int pageNumber)
 
     // Поиск в кэше
     if (findInCache(pageNumber)) {return;}
+
+    emit setEnabledButtons(false);
 
     // Отправка запроса на сервер
     PageRequest request(pageNumber, _filterMap);
@@ -97,6 +104,7 @@ void ClientEngine::pageResponse(const std::unique_ptr<Response>& response)
 
     emit updatePage(_savedPages.at(_currentPage));
     emit updatePageCounter(QString("%1/%2").arg(QString::number(_currentPage), QString::number(_pageCount)));
+    emit setEnabledButtons(true);
 }
 
 void ClientEngine::pageCountResponse(const std::unique_ptr<Response>& response)
