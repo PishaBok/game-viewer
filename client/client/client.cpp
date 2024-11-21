@@ -2,18 +2,15 @@
 
 Client::Client(PageCommand* pageCommand, FilterCommand* filterCommand, Invoker* invoker, QWidget *parent)
     : QMainWindow(parent), _pageCommand{pageCommand}, _filterCommand{filterCommand}, _invoker{invoker},
-    _searchColumns { Column::gameName, Column::publisher, Column::genre},
-    _filterColumns { Column::gameName, Column::platform, Column::year, Column::genre, Column::publisher,
-                    Column::criticscore, Column::rating },
-    _commandMap
-    {
-        {Button::page, _pageCommand},
-        {Button::filter, _filterCommand}
-    }
+    _pageNumberStr{"1"}, _pageCountStr{"ND"},
+    _searchColumns {Column::gameName, Column::publisher, Column::genre},
+    _filterColumns {Column::gameName, Column::platform, Column::year, Column::genre, Column::publisher,
+                    Column::criticscore, Column::rating}
 {
-    _searchWidget = createSearchWidget();
+    _searchLabel = createSearchWidget();
     _pageLabel = createPageLabel();
-    _filterLine = createFilterLine();
+    _searchFrame = createSearchFrame();
+    _activeFilter = createActiveFilter();
     _pageWidget = createPageWidget();
     _menuBar = createMenuBar();
     _toolBar = createToolBar();
@@ -21,7 +18,11 @@ Client::Client(PageCommand* pageCommand, FilterCommand* filterCommand, Invoker* 
     QWidget* page = new QWidget;
     page->setObjectName("page");
     _mainLayout = new QVBoxLayout;
-    _mainLayout->addWidget(_filterLine);
+    _mainLayout->setSpacing(6);
+    _mainLayout->setContentsMargins(0, 0, 0, 0);
+
+    _mainLayout->addWidget(_searchFrame);
+    _mainLayout->addWidget(_activeFilter);
     _mainLayout->addWidget(_pageWidget);
     page->setLayout(_mainLayout);
 
@@ -37,9 +38,8 @@ Client::~Client()
 
 QLineEdit *Client::createPageLabel() const
 {
-    QLineEdit* pageLabel = new QLineEdit(QString("%1/%2").arg("1", "ND"));
-    pageLabel->setMaximumHeight(35);
-    pageLabel->setMinimumWidth(65);
+    QLineEdit* pageLabel = new QLineEdit(QString("%1/%2").arg(_pageNumberStr, _pageCountStr));
+    pageLabel->setFixedSize(80, 25);
     pageLabel->setReadOnly(true);
     pageLabel->setAlignment(Qt::AlignCenter);
     pageLabel->setObjectName("toolBarLineEdit");
@@ -47,70 +47,88 @@ QLineEdit *Client::createPageLabel() const
     return pageLabel;
 }
 
-SearchWidget *Client::createSearchWidget() const
+SearchLabel *Client::createSearchWidget() const
 {
-    return new SearchWidget(columnTitles(_searchColumns));
+    return new SearchLabel(columnTitles(_searchColumns));
 }
 
-QWidget *Client::createFilterLine() const
+QFrame *Client::createSearchFrame() const
 {
-    QWidget* filterLine = new QWidget;
+    QFrame* searchFrame = new QFrame;
+    searchFrame->setObjectName("searchFrame");
+    searchFrame->setVisible(false);
+    
+    QHBoxLayout* layout = new QHBoxLayout;
+    layout->setAlignment(Qt::AlignmentFlag::AlignRight);
+    layout->setContentsMargins(5, 5, 5, 5);
+
+    QSpinBox* searchBox = new QSpinBox;
+    searchBox->setObjectName("searchBox");
+    searchBox->setFixedSize(65, 18);
+    searchBox->setFocusPolicy(Qt::NoFocus);
+
+    layout->addWidget(searchBox);
+
+    searchFrame->setLayout(layout);
+
+    return searchFrame;
+}
+
+QFrame *Client::createActiveFilter() const
+{
+    QFrame* filterLine = new QFrame;
     filterLine->setMaximumHeight(30);
-    filterLine->setVisible(true);
 
     QHBoxLayout* layout = new QHBoxLayout;
-    layout->addWidget(new QLabel("Filter1"));
-    layout->addWidget(new QLabel("Filter2"));
     layout->setContentsMargins(0, 0, 0, 0);
-
     filterLine->setLayout(layout);
 
     return filterLine;
 }
+
 QWidget *Client::createPageWidget() const
 {
     QWidget* pageWidget = new QWidget;
 
     QGridLayout* layout = new QGridLayout;
-    layout->setSpacing(10);
-    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setContentsMargins(10, 0, 10, 10);
     pageWidget->setLayout(layout);
 
     return pageWidget;
 }
 
+QPushButton* Client::createPushButton(const QString& title, Command* command)
+{
+    QPushButton* button = new QPushButton(title);
+    button->setObjectName("toolButton");
+    _buttons.push_back(button);
+
+    _senderToCommand[button] = command;
+   
+    return button;
+}
+
+
 QMenuBar *Client::createMenuBar()
 {
     QMenuBar* menuBar = new QMenuBar;
 
-    QMenu* fileMenu = new QMenu("Файл");
-    QAction* openAct = new QAction("Открыть");
-
     QMenu* walkTo = new QMenu("Переход");
     QAction* walkToAction = new QAction("Перейти к странице...");
-    //_buttonMap[walkToAction] = Button::page;
-    //connect(walkToAction, &QAction::triggered, this, &Client::buttonPressed);
-
-    QMenu* filter = new QMenu("Фильтр");
-    QAction* filterAction = new QAction("Задать фильтр...");
-    // _buttonMap[filterAction] = Button::filter;
-    // connect(filterAction, &QAction::triggered, [this, filterAction]()
-    // {
-    //     std::unique_ptr<FilterDialog> dialog = std::make_unique<FilterDialog>(columnTitles(_filterColumns));
-    //     if (dialog->exec() == QDialog::Accepted)
-    //     {
-    //         _filterCommand->setFilter(stringMapToColumn(dialog->data()));
-    //         buttonPressed(filterAction);
-    //     }
-    // });
+    _senderToCommand[walkToAction] = _pageCommand;
+    connect(walkToAction, &QAction::triggered, [this, walkToAction]()
+    {
+        std::unique_ptr<PageDialog> dialog = std::make_unique<PageDialog>();
+        if (dialog->exec() == QDialog::Accepted)
+        {
+            _pageCommand->setPage(dialog->data());
+            commandTriggered(walkToAction);
+        }
+    });
 
     //Заполняет меню бар элементами
-    fileMenu->addAction(openAct);
     walkTo->addAction(walkToAction);
-    filter->addAction(filterAction);
-    menuBar->addMenu(fileMenu);
     menuBar->addMenu(walkTo);
-    menuBar->addMenu(filter);
 
     return menuBar;
 }
@@ -119,47 +137,46 @@ QToolBar *Client::createToolBar()
 {
     QToolBar* toolBar = new QToolBar;
 
-    QPushButton* stepBack = new QPushButton(QString::fromUtf8("\u2190"));
-    _buttonMap[stepBack] = Button::page;
+    QPushButton* stepBack = createPushButton(QString::fromUtf8("\u2190"), _pageCommand);
     connect(stepBack, &QPushButton::clicked, [this, stepBack]()
     {
-        _pageCommand->setPage(_pageLabel->text().left(_pageLabel->text().indexOf("/")).toInt() - 1);
-        buttonPressed(stepBack);
+        _pageCommand->setPage(_pageNumberStr.toInt() - 1);
+        commandTriggered(stepBack);
     });
 
-    QPushButton* stepForward = new QPushButton(QString::fromUtf8("\u2192"));
-    _buttonMap[stepForward] = Button::page;
+    QPushButton* stepForward = createPushButton(QString::fromUtf8("\u2192"), _pageCommand);
     connect(stepForward, &QPushButton::clicked, [this, stepForward]()
     {
-        _pageCommand->setPage(_pageLabel->text().left(_pageLabel->text().indexOf("/")).toInt() + 1);
-        buttonPressed(stepForward);
+        _pageCommand->setPage(_pageNumberStr.toInt() + 1);
+        commandTriggered(stepForward);
     });
 
-    QPushButton* search = new QPushButton(QString(QChar(0xD83D)) + QChar(0xDD0D));
-    _buttonMap[search] = Button::search;
+    QPushButton* search = createPushButton(QString(QChar(0xD83D)) + QChar(0xDD0D), _filterCommand);
     connect(search, &QPushButton::clicked, [this]()
     {
 
     });
 
-    QPushButton* filter = new QPushButton("Задать фильтр...");
-    _buttonMap[filter] = Button::filter;
+    QPushButton* filter = createPushButton("Фильтр", _filterCommand);
+    filter->setMinimumWidth(65);
     connect(filter, &QPushButton::clicked, [this, filter]()
     {
         std::unique_ptr<FilterDialog> dialog = std::make_unique<FilterDialog>(columnTitles(_filterColumns));
         if (dialog->exec() == QDialog::Accepted)
         {
             _filterCommand->setFilter(stringMapToColumnMap(dialog->data()));
-            buttonPressed(filter);
+            commandTriggered(filter);
         }
     });
 
     toolBar->addWidget(stepBack);
     toolBar->addWidget(stepForward);
     toolBar->addWidget(_pageLabel);
-    toolBar->addWidget(_searchWidget);
+    toolBar->addWidget(_searchLabel);
     toolBar->addWidget(search);
     toolBar->addWidget(filter);
+
+    toolBar->setMovable(false);
 
     return toolBar;
 }
@@ -188,15 +205,6 @@ std::map<Column, QString> Client::stringMapToColumnMap(const std::map<QString, Q
     return resultMap;
 }
 
-void Client::callDialog() const
-{
-    std::unique_ptr<FilterDialog> dialog = std::make_unique<FilterDialog>(columnTitles(_filterColumns));
-
-    if (dialog->exec() == QDialog::Accepted)
-    {
-        
-    }
-}
 
 void Client::clearLayout(QLayout* layout)
 {
@@ -210,14 +218,30 @@ void Client::clearLayout(QLayout* layout)
     }
 }
 
-void Client::updatePageCounter(const QString &strForLabel)
+void Client::updatePageCounter(const QString &pageNumber, const QString& pageCount)
 {
-    _pageLabel->setText(strForLabel);
+    _pageNumberStr = pageNumber;
+    _pageCountStr = pageCount;
+    _pageLabel->setText(QString("%1/%2").arg(_pageNumberStr, _pageCountStr));
 }
 
-void Client::buttonPressed(QObject* sender)
+void Client::updateActiveFilter(const std::map<Column, QString> &filters)
 {
-    Command* command = _commandMap[_buttonMap[sender]];
+    clearLayout(_activeFilter->layout());
+    QHBoxLayout* layout = static_cast<QHBoxLayout*>(_activeFilter->layout());
+    for (const auto& filter: filters)
+    {
+        if (filter.second.isEmpty()) {continue;}
+        QLabel* label = new QLabel(QString("%1: %2").arg(QString::fromStdString(columnToTitleMap.at(filter.first)), filter.second));
+        layout->addWidget(label);
+    }
+
+    _activeFilter->setVisible(!filters.empty());
+}
+
+void Client::commandTriggered(QObject* sender)
+{
+    Command* command = _senderToCommand.at(sender);
     if (command != nullptr)
     {
         _invoker->setCommand(command);
@@ -241,9 +265,8 @@ void Client::updatePage(const clib::TableModel &model)
 
 void Client::setEnabledButtons(const bool flag)
 {
-    for(auto& objPtr: _buttonMap)
+    for(auto& button: _buttons)
     {
-        QPushButton* button = static_cast<QPushButton*>(objPtr.first);
         button->setEnabled(flag);
     }
 }

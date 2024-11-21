@@ -1,3 +1,46 @@
+QPushButton#toolButton {
+    padding-bottom: 2px;
+    font: bold 15px Arial;
+    width: 50px;
+    height: 25px;
+    border: none;
+}
+
+QPushButton#toolButton:hover {
+    background-color: rgb(100, 100, 100);
+    border: 1px solid rgb(100, 100, 100);
+    border-radius: 8px;
+}
+
+QPushButton#toolButton:pressed {
+    background-color: rgb(150, 150, 150);
+    border: 1px solid rgb(150, 150, 150);
+    border-radius: 8px;
+}
+
+QLineEdit#toolBarLineEdit {
+    font: 15px Arial;
+    height: 25px;
+    background-color: rgb(34, 34, 34);
+    border: 1px solid rgb(34, 34, 34);
+    border-radius: 8px;
+}
+
+QFrame#searchFrame {
+    background-color: rgb(47, 47, 47);
+    border: 1px solid rgb(47, 47, 47);
+}
+
+QLabel#cardTitle {
+    font-weight: bold; 
+    font-size: 16px; 
+    color: white;
+}
+
+QLabel#cardLabel {
+    color: white;
+}
+
 QFrame#card {
     background: qlineargradient(
         spread:pad,
@@ -10,4 +53,16 @@ QFrame#card {
 
 QWidget#page {
     background-color: rgb(55, 60, 71);
+}
+
+QSpinBox::down-button  {
+    subcontrol-origin: margin;
+    subcontrol-position: center left;
+    image: url(:/icons/leftArrow.png);
+}
+  
+QSpinBox::up-button  {
+    subcontrol-origin: margin;
+    subcontrol-position: center right;
+    image: url(:/icons/rightArrow.png);
 }

@@ -3,6 +3,13 @@
 #include <client/client_engine.hpp>
 #include <client/thread_pool.hpp>
 
+enum class CommandType
+{
+    page,
+    filter,
+    search
+};
+
 class Command
 {
 public:
@@ -61,9 +68,21 @@ public:
     {
         _engine->filter(_filterValues);
     }
-
+    
     void setFilter(const std::map<Column, QString>& filterValues) {_filterValues = filterValues;}
 
 private:
     std::map<Column, QString> _filterValues;
+};
+
+class SearchCommand: public Command
+{
+public:
+    SearchCommand(ClientEngine* engine) : Command(engine), _searchValues{} {}
+    virtual ~SearchCommand() {}
+
+    void setSearch(const std::map<Column, QString>& searchValues) {_searchValues = searchValues;}
+
+private:
+    std::map<Column, QString> _searchValues;
 };

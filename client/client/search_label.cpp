@@ -1,6 +1,6 @@
-#include <client/search_widget.hpp>
+#include <client/search_label.hpp>
 
-SearchWidget::SearchWidget(QStringList titles, QWidget* parent)
+SearchLabel::SearchLabel(QStringList titles, QWidget* parent)
     : QWidget(parent)
 {
     QHBoxLayout* layout = new QHBoxLayout;
@@ -9,6 +9,8 @@ SearchWidget::SearchWidget(QStringList titles, QWidget* parent)
     {
         QLabel* label = new QLabel(title, this);
         QLineEdit* lineEdit = new QLineEdit(this);
+        lineEdit->setObjectName("toolBarLineEdit");
+        lineEdit->setFixedHeight(25);
 
         layout->addWidget(label);
         layout->addWidget(lineEdit);
@@ -19,7 +21,7 @@ SearchWidget::SearchWidget(QStringList titles, QWidget* parent)
     setLayout(layout);
 }
 
-std::map<QString, QString> SearchWidget::getValues() const
+std::map<QString, QString> SearchLabel::data() const
 {
     std::map<QString, QString> result;
 

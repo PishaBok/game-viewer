@@ -26,10 +26,8 @@ private:
 
     std::unique_ptr<Request> _requestInProcess;
     std::atomic<bool> _running;
-
 public slots:
     void processRequest();
-
 signals:
     void requestCompleted(const QJsonDocument& response);
 };

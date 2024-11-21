@@ -62,6 +62,8 @@ void ClientEngine::filter(const std::map<Column, QString>& filter)
 
     page(1);
     pageCount();
+
+    emit updateActiveFilter(_filterMap);
 }
 
 void ClientEngine::search(const std::map<Column, QString>& search)
@@ -103,7 +105,7 @@ void ClientEngine::pageResponse(const std::unique_ptr<Response>& response)
     }
 
     emit updatePage(_savedPages.at(_currentPage));
-    emit updatePageCounter(QString("%1/%2").arg(QString::number(_currentPage), QString::number(_pageCount)));
+    emit updatePageCounter(QString::number(_currentPage), QString::number(_pageCount));
     emit setEnabledButtons(true);
 }
 
@@ -112,7 +114,7 @@ void ClientEngine::pageCountResponse(const std::unique_ptr<Response>& response)
     QJsonObject data = response->data();
     _pageCount = data.value("pageCount").toInt();
     
-    emit updatePageCounter(QString("%1/%2").arg(QString::number(_currentPage), QString::number(_pageCount)));
+    emit updatePageCounter(QString::number(_currentPage), QString::number(_pageCount));
 }
 
 
@@ -126,7 +128,7 @@ bool ClientEngine::findInCache(const int pageN)
     if (found != _savedPages.end())
     {
         emit updatePage(found->second);
-        emit updatePageCounter(QString("%1/%2").arg(QString::number(_currentPage), QString::number(_pageCount)));
+        emit updatePageCounter(QString::number(_currentPage), QString::number(_pageCount));
         return true;
     }
 

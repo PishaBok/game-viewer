@@ -43,6 +43,7 @@ std::unique_ptr<QSqlQuery> DatabaseManager::getQuery(const QueryParams& params)
     _queryMap[query.get()] = connectionName;
 
     QString queryStr{getQueryStr(params)};
+
     query->prepare(queryStr);
     bindValues(*query, params.filter);
 

@@ -6,7 +6,6 @@
 #include <QDebug>
 
 #include <client/socket.hpp>
-#include <client/buttons.hpp>
 #include <libcommon/columns.hpp>
 #include <libcommon/requests/page.hpp>
 #include <libcommon/requests/page_count.hpp>
@@ -59,7 +58,8 @@ signals:
     void sendToServer(const QByteArray& message);
 
     void updatePage(const clib::TableModel& model);
-    void updatePageCounter(const QString& strForLabel);
+    void updatePageCounter(const QString &pageNumber, const QString& pageCount);
+    void updateActiveFilter(const std::map<Column, QString>& filters);
     void setEnabledButtons(const bool flag);
 };
 

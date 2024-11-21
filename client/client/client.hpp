@@ -13,12 +13,14 @@
 #include <QLineEdit>
 #include <QThread>
 #include <QTimer>
+#include <QSpinBox>
+#include <QFrame>
 
-#include <client/buttons.hpp>
 #include <client/command.hpp>
-#include <client/search_widget.hpp>
-#include <client/filter_dialog.hpp>
+#include <client/search_label.hpp>
 #include <client/game_card.hpp>
+#include <client/filter_dialog.hpp>
+#include <client/page_dialog.hpp>
 #include <libcommon/table_model.hpp>
 #include <libcommon/columns.hpp>
 
@@ -31,28 +33,34 @@ public:
 
 private:
     QLineEdit* _pageLabel; // Текущая страница/Количество страниц
-    SearchWidget* _searchWidget; // Поля поиска
-    QWidget* _filterLine; // Активные фильтры
+    SearchLabel* _searchLabel; // Поля поиска
+    QFrame* _searchFrame;
+    QFrame* _activeFilter; // Активные фильтры
     QWidget* _pageWidget; // Основная информация
     QVBoxLayout* _mainLayout;
     QMenuBar* _menuBar;
     QToolBar* _toolBar;
-    
+
+    QString _pageNumberStr;
+    QString _pageCountStr;
+
     std::vector<Column> _searchColumns;
     std::vector<Column> _filterColumns;
+    std::vector<QPushButton*> _buttons;
 
     // Комманды
     PageCommand* _pageCommand;
     FilterCommand* _filterCommand;
     Invoker* _invoker;
-    std::map<QObject*, Button> _buttonMap;
-    std::map<Button, Command*> _commandMap;
+    std::map<QObject*, Command*> _senderToCommand;
 
     // Создание основных виджетов
     QLineEdit* createPageLabel() const;
-    SearchWidget* createSearchWidget() const;
-    QWidget* createFilterLine() const;
+    SearchLabel* createSearchWidget() const;
+    QFrame* createSearchFrame() const;
+    QFrame* createActiveFilter() const;
     QWidget* createPageWidget() const;
+    QPushButton* createPushButton(const QString& title, Command* command);
     QMenuBar* createMenuBar();
     QToolBar* createToolBar();
 
@@ -61,13 +69,11 @@ private:
     std::map<Column, QString> stringMapToColumnMap(const std::map<QString, QString> stringMap) const;
     void clearLayout(QLayout* layout);
 
-    void buttonPressed(QObject* sender);
-private slots:
-    void callDialog() const;
-
+    void commandTriggered(QObject* sender);
 public slots:
     void updatePage(const clib::TableModel& model);
-    void updatePageCounter(const QString& strForLabel);
+    void updatePageCounter(const QString &pageNumber, const QString& pageCount);
+    void updateActiveFilter(const std::map<Column, QString>& filters);
     void setEnabledButtons(const bool flag);
 };
 

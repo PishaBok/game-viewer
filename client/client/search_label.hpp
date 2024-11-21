@@ -6,14 +6,13 @@
 #include <QLabel>
 #include <QHBoxLayout>
 
-
-class SearchWidget: public QWidget
+class SearchLabel: public QWidget
 {
     Q_OBJECT
 public:
-    SearchWidget(QStringList titles, QWidget* parent = nullptr);
+    SearchLabel(QStringList titles, QWidget* parent = nullptr);
 
-    std::map<QString, QString> getValues() const;
+    std::map<QString, QString> data() const;
 private:
     std::map<QLabel*, QLineEdit*> _titlesMap;
 };

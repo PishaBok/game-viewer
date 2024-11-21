@@ -13,13 +13,17 @@ GameCard::GameCard(const CardData& data, QFrame* parent)
     }
 
     QLabel* titleLabel = new QLabel(QString("%1 (%2)").arg(titleStr, data.platform));
-    titleLabel->setStyleSheet("font-weight: bold; font-size: 16px;");
+    titleLabel->setObjectName("cardTitle");
 
     QLabel* yearLabel = new QLabel(QString("%1 г.").arg(data.year));
+    yearLabel->setObjectName("cardLabel");
     QLabel* genreLabel = new QLabel(data.genre);
+    genreLabel->setObjectName("cardLabel");
 
     QLabel* scoreLabel = new QLabel(QString("Critics Score: %1").arg(data.criticScore));
+    scoreLabel->setObjectName("cardLabel");
     QLabel* ratingLabel = new QLabel(QString("Rating: %1").arg(data.rating));
+    ratingLabel->setObjectName("cardLabel");
 
     layout->addWidget(titleLabel);
     layout->addWidget(yearLabel);
