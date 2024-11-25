@@ -2,7 +2,7 @@
 
 ## Game Library Manager
 
-####Overview
+#### Overview
 
 Game Library Manager is a client-server application built using C++/Qt and PostgreSQL, designed to manage a personal game library. The project serves as an educational endeavor to explore modern software development concepts, including client-server architecture, web sockets, multithreading, and GUI design.
 
