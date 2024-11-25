@@ -30,12 +30,13 @@ Game Library Manager is a client-server application built using C++/Qt and Postg
 #### Database Structure
 
 The application utilizes a PostgreSQL database with three primary tables:
+
 	1.	game: Contains the main game catalog (~10,000 entries).
-	•	Fields: id, name, platform, genre, release_year, etc.
+		•	Fields: id, name, platform, genre, release_year, etc.
 	2.	user: Stores user login credentials.
-	•	Fields: id, username, password.
+		•	Fields: id, username, password.
 	3.	usergame: Manages relationships between users and their personal game libraries.
-	•	Fields: user_id, game_id.
+		•	Fields: user_id, game_id.
 
 #### Purpose
 
