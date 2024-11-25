@@ -55,12 +55,12 @@ This project was created as a learning experience to dive deeper into:
 #### How to Run
 
 	1.	Server:
-	•	Build the server application using CMake and run it on a machine with PostgreSQL installed.
-	•	Ensure the WebSocket port is correctly configured and accessible.
+		Build the server application using CMake and run it on a machine with PostgreSQL installed.
+		Ensure the WebSocket port is correctly configured and accessible.
 	2.	Client:
-	•	Build the client application using QtCreator or your preferred C++ build system.
-	•	Connect to the server via WebSocket by providing the appropriate URL.
+		Build the client application using QtCreator or your preferred C++ build system.
+		Connect to the server via WebSocket by providing the appropriate URL.
 	3.	Database:
-	•	Populate the database with the provided schema and sample data.
+		Populate the database with the provided schema and sample data.
 
 Feel free to explore and extend the project to suit your needs! 😊
