@@ -30,7 +30,7 @@ void ClientEngine::start()
 
 void ClientEngine::connectedToServer()
 {
-    PageRequest pageRequest{_currentPage, _filterMap};
+    PageRequest pageRequest{_currentPage, _filter};
     emit sendToServer(QJsonDocument(pageRequest.serialize()).toJson());
     pageCount();
 }
@@ -48,22 +48,22 @@ void ClientEngine::page(const int pageNumber)
     emit setEnabledButtons(false);
 
     // Отправка запроса на сервер
-    PageRequest request(pageNumber, _filterMap);
+    PageRequest request(pageNumber, _filter);
     emit sendToServer(QJsonDocument(request.serialize()).toJson());
 }
 
-void ClientEngine::filter(const std::map<Column, QString>& filter)
+void ClientEngine::filter(const std::map<Column, FilterParams>& filter)
 {
-    if (filter == _filterMap) {return;}
+    if (filter == _filter) {return;}
 
-    _filterMap = filter;
+    _filter = filter;
     _savedPages.clear();
     _pageCount = 1000;
 
     page(1);
     pageCount();
 
-    emit updateActiveFilter(_filterMap);
+    emit updateActiveFilter(_filter);
 }
 
 void ClientEngine::search(const std::map<Column, QString>& search)
@@ -73,7 +73,7 @@ void ClientEngine::search(const std::map<Column, QString>& search)
 
 void ClientEngine::pageCount()
 {
-    PageCountRequest request(_recordsOnPage, _filterMap);
+    PageCountRequest request(_recordsOnPage, _filter);
     emit sendToServer(QJsonDocument(request.serialize()).toJson());
 }
 

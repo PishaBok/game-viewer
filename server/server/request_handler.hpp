@@ -20,8 +20,8 @@ private:
     std::map<RequestType, std::function<std::unique_ptr<Request>(DatabaseManager&)>> _requestFactory
     {
         {RequestType::page, [](DatabaseManager& dbManager) {return std::make_unique<PageExecutor>(dbManager);}},
-        {RequestType::pageCount, [](DatabaseManager& dbManager) {return std::make_unique<PageCountExecutor>(dbManager);}},
-        {RequestType::search, [](DatabaseManager& dbManager) {return std::make_unique<SearchExecutor>(dbManager);}}
+        {RequestType::pageCount, [](DatabaseManager& dbManager) {return std::make_unique<PageCountExecutor>(dbManager);}}
+        //{RequestType::search, [](DatabaseManager& dbManager) {return std::make_unique<SearchExecutor>(dbManager);}}
     };
 
     std::unique_ptr<Request> _requestInProcess;

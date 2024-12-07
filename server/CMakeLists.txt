@@ -9,7 +9,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Sql Network Concurrent) 
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Sql Network Concurrent) 
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Sql Network Concurrent)
 
 add_subdirectory(../libcommon CommonLib)
 
@@ -24,4 +25,4 @@ target_include_directories(Server PRIVATE
         ${CMAKE_SOURCE_DIR}
 )
 
-target_link_libraries(Server PRIVATE CommonLib Qt6::Widgets Qt6::Sql Qt6::Network Qt6::Concurrent)
+target_link_libraries(Server PRIVATE CommonLib Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Sql Qt${QT_VERSION_MAJOR}::Network Qt${QT_VERSION_MAJOR}::Concurrent)

@@ -20,7 +20,6 @@ QPushButton#toolButton:pressed {
 
 QLineEdit#toolBarLineEdit {
     font: 15px Arial;
-    height: 25px;
     background-color: rgb(34, 34, 34);
     border: 1px solid rgb(34, 34, 34);
     border-radius: 8px;

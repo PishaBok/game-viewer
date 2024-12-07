@@ -2,6 +2,8 @@
 
 #include <chrono>
 #include <string>
+#include <sstream>
+#include <iomanip>
 #include <QObject>
 #include <QFile>
 #include <QTextStream>

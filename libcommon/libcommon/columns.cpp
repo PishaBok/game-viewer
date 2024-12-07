@@ -6,7 +6,8 @@ const std::map<Column, std::string> columnToStringMap =
     {Column::gameId, "gameid"}, {Column::gameName, "gamename"},
     {Column::platform, "platform"}, {Column::year, "year"},
     {Column::genre, "genre"}, {Column::publisher, "publisher"},
-    {Column::criticscore, "criticscore"}, {Column::rating, "rating"}
+    {Column::criticscore, "criticscore"}, {Column::rating, "rating"},
+    {Column::gameimg, "gameimg"}
 };
 
 const std::map<std::string, Column> columnFromStringMap = 
@@ -15,7 +16,8 @@ const std::map<std::string, Column> columnFromStringMap =
     {"gameid", Column::gameId}, {"gamename", Column::gameName},
     {"platform", Column::platform}, {"year", Column::year},
     {"genre", Column::genre}, {"publisher", Column::publisher},
-    {"criticscore", Column::criticscore}, {"rating", Column::rating}
+    {"criticscore", Column::criticscore}, {"rating", Column::rating},
+    {"gameimg", Column::gameimg}
 };
 
 
@@ -39,22 +41,38 @@ const std::map<std::string, Column> columnFromTitleMap =
 };
 
 
-const std::map<Column, ComparisonSettings> comparisonMap =
+
+
+const std::map<CompareType, std::string> compareTypeToTitle =
 {
-    {Column::userName, {"=", compareEqual}}, {Column::password, {"=", compareEqual}},
-    {Column::gameId, {"=", compareEqual}}, {Column::gameName, {"LIKE", compareStartWith}},
-    {Column::platform, {"=", compareEqual}}, {Column::year, {"=", compareEqual}},
-    {Column::genre, {"=", compareEqual}}, {Column::publisher, {"LIKE", compareStartWith}},
-    {Column::criticscore, {"=", compareEqual}}, {Column::rating, {"=", compareEqual}}
+    {CompareType::endsWith, "оканчивается на..."},
+    {CompareType::startsWith, "начинается с..."},
+    {CompareType::includes, "включает..."},
+    {CompareType::equals, "совпадает с..."}
+};
+
+const std::map<std::string, CompareType> compareTypeFromTitle =
+{
+    {"оканчивается на...", CompareType::endsWith},
+    {"начинается с...", CompareType::startsWith},
+    {"включает...", CompareType::includes},
+    {"совпадает с...", CompareType::equals}
+};
+
+const std::map<Column, std::function<bool(std::string_view, std::string_view)>> defautCompareMap =
+{
+    {Column::userName, compareEquals}, {Column::password, compareEquals},
+    {Column::gameId, compareEquals}, {Column::gameName, compareStartsWith},
+    {Column::platform, compareEquals}, {Column::year, compareData},
+    {Column::genre, compareEquals}, {Column::publisher, compareStartsWith},
+    {Column::criticscore, compareEquals}, {Column::rating, compareEquals}
 };
 
 
-bool compareEqual(std::string_view value, std::string_view search)
-{
-    return value == search;
-}
 
-bool compareStartWith(std::string_view value, std::string_view search)
+
+
+bool compareStartsWith(std::string_view value, std::string_view search)
 {
     if (search.size() > value.size()) {return false;}
 
@@ -62,4 +80,70 @@ bool compareStartWith(std::string_view value, std::string_view search)
     {
         return std::tolower(a) == std::tolower(b);
     });
+}
+
+bool compareEndsWith(std::string_view value, std::string_view search)
+{
+    if (search.size() > value.size()) {return false;}
+
+    auto valueIt = value.end() - search.size();
+    return std::equal(search.begin(), search.end(), valueIt, [](char a, char b) {
+        return std::tolower(a) == std::tolower(b);
+    });
+}
+
+bool compareIncludes(std::string_view value, std::string_view search)
+{
+    if (search.empty()) {return true;}
+    if (search.size() > value.size()) {return false;}
+
+    auto it = std::search(value.begin(), value.end(), search.begin(), search.end(),
+                          [](char a, char b) {
+                              return std::tolower(a) == std::tolower(b);
+                          });
+    return it != value.end();
+}
+
+bool compareEquals(std::string_view value, std::string_view search)
+{
+    return value == search;
+}
+
+bool compareData(std::string_view value, std::string_view search)
+{
+    auto searchValues = splitData(search, ':');
+
+    int intValue{};
+    std::from_chars(value.data(), value.data() + value.size(), intValue);
+    int leftBound{};
+    std::from_chars(searchValues.front().data(), searchValues.front().data() + searchValues.front().size(), leftBound);
+    int rightBound{};
+    std::from_chars(searchValues.back().data(), searchValues.back().data() + searchValues.back().size(), rightBound);
+
+    if (intValue >= leftBound && intValue <= rightBound)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+std::vector<std::string_view> splitData(std::string_view dataSearch, char delimeter)
+{
+    std::vector<std::string_view> result;
+    std::size_t start = 0;
+    std::size_t end = 0;
+
+    while ((end = dataSearch.find(delimeter, start)) != std::string_view::npos)
+    {
+        result.emplace_back(dataSearch.substr(start, end - start));
+        start = end + 1;
+    }
+
+    if (start < dataSearch.size()) 
+    {
+        result.emplace_back(dataSearch.substr(start));
+    }
+
+    return result;
 }

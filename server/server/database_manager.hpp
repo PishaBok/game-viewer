@@ -2,6 +2,7 @@
 
 #include <thread>
 #include <future>
+#include <sstream>
 #include <QObject>
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -25,7 +26,7 @@ struct QueryParams
 {
     std::string strQueryTemplate;
     std::string orderBy;
-    std::map<Column, QString> filter;
+    std::map<Column, FilterParams> filter;
     int limit;
     int offset;
 };
@@ -44,7 +45,7 @@ public:
     void disconnect(const QString& connection);
     std::unique_ptr<QSqlQuery> getQuery(const QueryParams& params);
     void cleanupQuery(QSqlQuery* query);
-    size_t recordCount(const std::string& tableName, const std::map<Column, QString> filter);
+    size_t recordCount(const std::string& tableName, const std::map<Column, FilterParams> filter);
 private:
     // Настройки менеджера
     ConnectionParams _dbParams;
@@ -55,5 +56,6 @@ private:
 
 
     QString getQueryStr(const QueryParams& params) const;
-    void bindValues(QSqlQuery& query, const std::map<Column, QString>& values); 
+    QString getFilterPart(const std::pair<Column, FilterParams>& filter) const;
+    void bindValue(QSqlQuery& query, const std::pair<Column, FilterParams>& filter);
 };

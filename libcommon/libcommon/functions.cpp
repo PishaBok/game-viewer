@@ -31,7 +31,7 @@ namespace clib
 
             std::string recordValue = record.value(columnName).toString().toStdString();
 
-            if (!comparisonMap.at(column).compareFunc(recordValue, searchValue.toStdString()))
+            if (!defautCompareMap.at(column)(recordValue, searchValue.toStdString()))
             {
                 return false;
             }
@@ -47,7 +47,7 @@ namespace clib
 
             std::string recordValue = record.at(column).toStdString();
 
-            if (!comparisonMap.at(column).compareFunc(recordValue, searchValue.toStdString()))
+            if (!defautCompareMap.at(column)(recordValue, searchValue.toStdString()))
             {
                 return false;
             }

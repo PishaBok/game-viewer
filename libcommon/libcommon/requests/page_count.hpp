@@ -6,14 +6,14 @@ class PageCountRequest: public Request
 {
 public:
     PageCountRequest();
-    PageCountRequest(const int recordsOnPage, const std::map<Column, QString>& filter);
+    PageCountRequest(const int recordsOnPage, const std::map<Column, FilterParams>& filter);
     virtual ~PageCountRequest() = default;
 
     QJsonObject serialize() const override;
     void deserialize(const QJsonObject& jsonObject) override;
 protected:
     int _recordsOnPage;
-    std::map<Column, QString> _filter;
+    std::map<Column, FilterParams> _filter;
 
 private:
     bool validate(const QJsonObject& jsonObj) override;

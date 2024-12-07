@@ -4,7 +4,7 @@ PageCountRequest::PageCountRequest()
     : Request(RequestType::pageCount)
 {}
 
-PageCountRequest::PageCountRequest(const int recordsOnPage, const std::map<Column, QString>& filter)
+PageCountRequest::PageCountRequest(const int recordsOnPage, const std::map<Column, FilterParams>& filter)
     : Request(RequestType::pageCount), _recordsOnPage{recordsOnPage}, _filter(filter)
 {}
 
@@ -17,11 +17,12 @@ QJsonObject PageCountRequest::serialize() const
     paramsObject["recordsOnPage"] = _recordsOnPage;
 
     QJsonArray filterArray;
-    for (const auto& [column, value]: _filter)
+    for (const auto& [column, filterSetting]: _filter)
     {
         QJsonObject filterObj;
         filterObj["column"] = static_cast<int>(column);
-        filterObj["value"] = value;
+        filterObj["value"] = QString::fromStdString(filterSetting.value);
+        filterObj["compareType"] = static_cast<int>(filterSetting.type);
         filterArray.append(filterObj);
     }
     paramsObject["filter"] = filterArray;
@@ -46,7 +47,10 @@ void PageCountRequest::deserialize(const QJsonObject& data)
     for (const QJsonValue& jsonValue: filterValues)
     {
         QJsonObject valueObj = jsonValue.toObject();
-        _filter.insert({static_cast<Column>(valueObj.value("column").toInt()), valueObj.value("value").toString()});
+        Column column = static_cast<Column>(valueObj.value("column").toInt());
+        FilterParams params = {valueObj.value("value").toString().toStdString(), static_cast<CompareType>(valueObj.value("compareType").toInt())};
+
+        _filter.insert({column, params});
     }
 }
 

@@ -108,7 +108,6 @@ QPushButton* Client::createPushButton(const QString& title, Command* command)
     return button;
 }
 
-
 QMenuBar *Client::createMenuBar()
 {
     QMenuBar* menuBar = new QMenuBar;
@@ -161,10 +160,10 @@ QToolBar *Client::createToolBar()
     filter->setMinimumWidth(65);
     connect(filter, &QPushButton::clicked, [this, filter]()
     {
-        std::unique_ptr<FilterDialog> dialog = std::make_unique<FilterDialog>(columnTitles(_filterColumns));
+        std::unique_ptr<FilterDialog> dialog = std::make_unique<FilterDialog>(_filterColumns);
         if (dialog->exec() == QDialog::Accepted)
         {
-            _filterCommand->setFilter(stringMapToColumnMap(dialog->data()));
+            _filterCommand->setFilter(dialog->data());
             commandTriggered(filter);
         }
     });
@@ -181,6 +180,7 @@ QToolBar *Client::createToolBar()
     return toolBar;
 }
 
+
 QStringList Client::columnTitles(const std::vector<Column> &columns) const
 {
     QStringList titles;
@@ -192,19 +192,6 @@ QStringList Client::columnTitles(const std::vector<Column> &columns) const
 
     return titles;
 }
-
-std::map<Column, QString> Client::stringMapToColumnMap(const std::map<QString, QString> stringMap) const
-{
-    std::map<Column, QString> resultMap;
-
-    for (const auto& el: stringMap)
-    {
-        resultMap[columnFromTitleMap.at(el.first.toStdString())] = el.second;
-    }
-
-    return resultMap;
-}
-
 
 void Client::clearLayout(QLayout* layout)
 {
@@ -218,6 +205,7 @@ void Client::clearLayout(QLayout* layout)
     }
 }
 
+
 void Client::updatePageCounter(const QString &pageNumber, const QString& pageCount)
 {
     _pageNumberStr = pageNumber;
@@ -225,14 +213,16 @@ void Client::updatePageCounter(const QString &pageNumber, const QString& pageCou
     _pageLabel->setText(QString("%1/%2").arg(_pageNumberStr, _pageCountStr));
 }
 
-void Client::updateActiveFilter(const std::map<Column, QString> &filters)
+void Client::updateActiveFilter(const std::map<Column, FilterParams> &filters)
 {
     clearLayout(_activeFilter->layout());
     QHBoxLayout* layout = static_cast<QHBoxLayout*>(_activeFilter->layout());
     for (const auto& filter: filters)
     {
-        if (filter.second.isEmpty()) {continue;}
-        QLabel* label = new QLabel(QString("%1: %2").arg(QString::fromStdString(columnToTitleMap.at(filter.first)), filter.second));
+        QString filterValue = QString::fromStdString(filter.second.value);
+
+        if (filterValue.isEmpty()) {continue;}
+        QLabel* label = new QLabel(QString("%1: %2").arg(QString::fromStdString(columnToTitleMap.at(filter.first)), filterValue));
         layout->addWidget(label);
     }
 

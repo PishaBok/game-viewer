@@ -7,7 +7,7 @@ class PageRequest: public Request
 {
 public:
     PageRequest();
-    PageRequest(const int pageN, const std::map<Column, QString>& filter);
+    PageRequest(const int pageN, const std::map<Column, FilterParams>& filter);
     virtual ~PageRequest() = default;
 
     QJsonObject serialize() const override;
@@ -15,7 +15,7 @@ public:
 
 protected:
     int _page;
-    std::map<Column, QString> _filter;
+    std::map<Column, FilterParams> _filter;
 
 private:
     bool validate(const QJsonObject& jsonObj) override;

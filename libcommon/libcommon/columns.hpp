@@ -4,7 +4,9 @@
 #include <string>
 #include <string_view>
 #include <functional>
+#include <charconv>
 
+// Рабочие столбцы
 enum class Column
 {
     userName,
@@ -17,62 +19,55 @@ enum class Column
     genre,
     publisher,
     criticscore,
-    rating
+    rating,
+    gameimg
 };
 
-struct ComparisonSettings
+// Метода фильтра/поиска
+enum class CompareType
 {
-    std::string compareWord;
-    std::function<bool(std::string_view, std::string_view)> compareFunc;
+    startsWith,
+    endsWith,
+    includes,
+    equals,
+    data
 };
 
+// Параметр фильтра для каждого столбца
+struct FilterParams
+{
+    std::string value;
+    CompareType type;
+
+    bool operator==(const FilterParams &other) const {
+        return value == other.value && type == other.type;
+    }
+};
+
+// Для работы с базой данных
 extern const std::map<Column, std::string> columnToStringMap;
 extern const std::map<std::string, Column> columnFromStringMap;
 
+// Для UI столбцы
 extern const std::map<Column, std::string> columnToTitleMap;
 extern const std::map<std::string, Column> columnFromTitleMap;
 
-extern bool compareEqual(std::string_view value, std::string_view search);
-extern bool compareStartWith(std::string_view value, std::string_view search);
-extern const std::map<Column, ComparisonSettings> comparisonMap;
+// Для UI сравнение
+extern const std::map<CompareType, std::string> compareTypeToTitle;
+extern const std::map<std::string, CompareType> compareTypeFromTitle;
+
+// Для поиска
+extern const std::map<Column, std::function<bool(std::string_view, std::string_view)>> defautCompareMap;
+
+extern bool compareStartsWith(std::string_view value, std::string_view search);
+extern bool compareEndsWith(std::string_view value, std::string_view search);
+extern bool compareIncludes(std::string_view value, std::string_view search);
+extern bool compareEquals(std::string_view value, std::string_view search);
+extern bool compareData(std::string_view value, std::string_view search);
+
+extern std::vector<std::string_view> splitData(std::string_view dataSearch, char delimeter);
 
 
-// struct ColumnToStringMap
-// {
-//     static constexpr std::string operator[](Column column) noexcept
-//     {
-//         switch (column)
-//         {
-//             case Column::userName: return "username";
-//             case Column::password: return "password";
-//             case Column::gameId: return "gameid";
-//             case Column::gameName: return "gamename";
-//             case Column::platform: return "platform";
-//             case Column::year: return "year";
-//             case Column::genre: return "genre";
-//             case Column::publisher: return "publisher";
-//             case Column::criticscore: return "criticscore";
-//             case Column::rating: return "rating";
-//             default:
-//                 return "undefined";
-//         }
-//     }
 
-//     static constexpr Column operator[](std::string_view columnName) noexcept
-//     {
-//         if (columnName == "username") {return Column::userName;}
-//         else if (columnName == "password") {return Column::password;}
-//         else if (columnName == "gameid") {return Column::gameId;}
-//         else if (columnName == "gamename") {return Column::gameName;}
-//         else if (columnName == "platform") {return Column::platform;}
-//         else if (columnName == "year") {return Column::year;}
-//         else if (columnName == "genre") {return Column::genre;}
-//         else if (columnName == "publisher") {return Column::publisher;}
-//         else if (columnName == "criticscore") {return Column::criticscore;}
-//         else if (columnName == "rating") {return Column::rating;}
-//         else
-//         {
-//             return Column();
-//         }
-//     }
-// };
+
+

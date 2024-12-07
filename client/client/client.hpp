@@ -34,7 +34,7 @@ public:
 private:
     QLineEdit* _pageLabel; // Текущая страница/Количество страниц
     SearchLabel* _searchLabel; // Поля поиска
-    QFrame* _searchFrame;
+    QFrame* _searchFrame; // Переключение результатов поиска
     QFrame* _activeFilter; // Активные фильтры
     QWidget* _pageWidget; // Основная информация
     QVBoxLayout* _mainLayout;
@@ -66,14 +66,13 @@ private:
 
     // Вспомогательные функции
     QStringList columnTitles(const std::vector<Column>& columns) const;
-    std::map<Column, QString> stringMapToColumnMap(const std::map<QString, QString> stringMap) const;
     void clearLayout(QLayout* layout);
 
     void commandTriggered(QObject* sender);
 public slots:
     void updatePage(const clib::TableModel& model);
     void updatePageCounter(const QString &pageNumber, const QString& pageCount);
-    void updateActiveFilter(const std::map<Column, QString>& filters);
+    void updateActiveFilter(const std::map<Column, FilterParams>& filters);
     void setEnabledButtons(const bool flag);
 };
 

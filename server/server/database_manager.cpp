@@ -24,6 +24,8 @@ bool DatabaseManager::connect(const QString &conName)
     db.setUserName(_dbParams.user);
     db.setPassword(_dbParams.password);
 
+    qDebug() << "Connection Succed!";
+
     return db.open();
 }
 
@@ -45,7 +47,13 @@ std::unique_ptr<QSqlQuery> DatabaseManager::getQuery(const QueryParams& params)
     QString queryStr{getQueryStr(params)};
 
     query->prepare(queryStr);
-    bindValues(*query, params.filter);
+
+    for (const auto& el: params.filter)
+    {
+        if (el.second.value == "") {continue;}
+
+        bindValue(*query, el);
+    }
 
     return std::move(query);
 }
@@ -66,10 +74,12 @@ void DatabaseManager::cleanupQuery(QSqlQuery* query)
 QString DatabaseManager::getQueryStr(const QueryParams &params) const
 {
     QString queryStr{QString::fromStdString(params.strQueryTemplate)};
+
     for (const auto& el: params.filter)
     {
-        if (el.second == "") {continue;}
-        queryStr += " AND (" + columnToStringMap.at(el.first) + " " + comparisonMap.at(el.first).compareWord + " :" + columnToStringMap.at(el.first) + ")";
+        if (el.second.value == "") {continue;}
+
+        queryStr += " AND " + getFilterPart(el);
     }
 
     queryStr += !params.orderBy.empty() ? " " + QString::fromStdString(params.orderBy) : "";
@@ -79,19 +89,60 @@ QString DatabaseManager::getQueryStr(const QueryParams &params) const
     return queryStr;
 }
 
-void DatabaseManager::bindValues(QSqlQuery &query, const std::map<Column, QString> &values)
+QString DatabaseManager::getFilterPart(const std::pair<Column, FilterParams>& filter) const
 {
-    for (const auto& value: values)
-    {
-        QString stringVal = value.second;
+    QString columnName = QString::fromStdString(columnToStringMap.at(filter.first));
 
-        if (comparisonMap.at(value.first).compareWord == "LIKE") {stringVal += "%";}
-        query.bindValue(":" + QString::fromStdString(columnToStringMap.at(value.first)), stringVal);
+    switch (filter.second.type)
+    {
+        case CompareType::endsWith: case CompareType::startsWith:
+        case CompareType::includes:
+            return columnName + " LIKE :" + columnName;
+        case CompareType::equals:
+            return columnName + " = :" + columnName;
+        case CompareType::data:
+            QStringList years = QString::fromStdString(filter.second.value).split("|");
+            int leftBound = years.front().toInt();
+            int rightBound = years.back().toInt();
+
+            if (leftBound && rightBound) {return columnName + " BETWEEN :yearstart AND :yearend";} 
+            else if (leftBound) {return columnName + " >= :yearstart";}
+            else if (rightBound) {return columnName + " <= :yearend";}
+            return QString();
     }
 }
 
+void DatabaseManager::bindValue(QSqlQuery& query, const std::pair<Column, FilterParams>& filter)
+{
+    QString columnName = QString::fromStdString(columnToStringMap.at(filter.first));
+    QString filterValue = QString::fromStdString(filter.second.value);
 
-size_t DatabaseManager::recordCount(const std::string& tableName, const std::map<Column, QString> filter)
+    switch (filter.second.type)
+    {
+        case CompareType::endsWith:
+            filterValue = "%" + filterValue;
+            query.bindValue(":" + columnName, filterValue);
+            break;
+        case CompareType::startsWith:  
+            filterValue += "%";
+            query.bindValue(":" + columnName, filterValue);
+            break;
+        case CompareType::includes:
+            filterValue = "%" + filterValue + "%";
+            query.bindValue(":" + columnName, filterValue);
+            break;
+        case CompareType::equals:
+            query.bindValue(":" + columnName, filterValue);
+            break;
+        case CompareType::data:
+            QStringList years = filterValue.split("|");
+            query.bindValue(":" + columnName + "start", years.front());
+            query.bindValue(":" + columnName + "end", years.back());
+            break;
+    }
+}
+
+size_t DatabaseManager::recordCount(const std::string& tableName, const std::map<Column, FilterParams> filter)
 {
     std::string strQuery{"SELECT COUNT(*) FROM "+ tableName + " WHERE 1 = 1"};
 

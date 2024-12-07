@@ -69,10 +69,10 @@ public:
         _engine->filter(_filterValues);
     }
     
-    void setFilter(const std::map<Column, QString>& filterValues) {_filterValues = filterValues;}
+    void setFilter(const std::map<Column, FilterParams>& filterValues) {_filterValues = filterValues;}
 
 private:
-    std::map<Column, QString> _filterValues;
+    std::map<Column, FilterParams> _filterValues;
 };
 
 class SearchCommand: public Command

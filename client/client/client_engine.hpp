@@ -21,7 +21,7 @@ public:
 
     // Обработчики кнопок
     void page(const int pageNumber);
-    void filter(const std::map<Column, QString>& filter);
+    void filter(const std::map<Column, FilterParams>& filter);
     void search(const std::map<Column, QString>& search);
     void pageCount();
 private:
@@ -35,7 +35,7 @@ private:
     size_t _recordsOnPage;
     int _currentPage;
     int _currentSearchRecord;
-    std::map<Column, QString> _filterMap;
+    std::map<Column, FilterParams> _filter;
     std::map<Column, QString> _searchMap;
 
     // Данные от сервера
@@ -59,7 +59,7 @@ signals:
 
     void updatePage(const clib::TableModel& model);
     void updatePageCounter(const QString &pageNumber, const QString& pageCount);
-    void updateActiveFilter(const std::map<Column, QString>& filters);
+    void updateActiveFilter(const std::map<Column, FilterParams>& filters);
     void setEnabledButtons(const bool flag);
 };
 
