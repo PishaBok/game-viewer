@@ -1,5 +1,7 @@
 #include <server/database_manager.hpp>
 
+
+
 DatabaseManager::DatabaseManager(ConnectionParams conParams, QObject* parent) : 
     QObject(parent), _dbParams{conParams}, _mainConnection{"mainConnection"}
 {}
@@ -12,7 +14,8 @@ QString DatabaseManager::generateConnectionName() const
 {
     std::ostringstream oss;
     oss << std::this_thread::get_id();  // Получаем текущий thread id
-    return QString("db_connection_%1").arg(QString::fromStdString(oss.str()));
+    ++_connectionCounter;
+    return QString("db_connection_%1_%2").arg(QString::fromStdString(oss.str()), QString::number(_connectionCounter));
 }
 
 bool DatabaseManager::connect(const QString &conName)
@@ -23,8 +26,6 @@ bool DatabaseManager::connect(const QString &conName)
     db.setHostName(_dbParams.host);
     db.setUserName(_dbParams.user);
     db.setPassword(_dbParams.password);
-
-    qDebug() << "Connection Succed!";
 
     return db.open();
 }
@@ -57,6 +58,20 @@ std::unique_ptr<QSqlQuery> DatabaseManager::getQuery(const QueryParams& params)
 
     return std::move(query);
 }
+
+std::unique_ptr<QSqlQuery> DatabaseManager::getQuery(const QString& queryStr)
+{
+    std::scoped_lock<std::mutex> lock(_connectionsMutex);
+    QString connectionName{generateConnectionName()};
+    connect(connectionName);
+    auto query{std::make_unique<QSqlQuery>(QSqlDatabase::database(connectionName))};
+    _queryMap[query.get()] = connectionName;
+
+    query->prepare(queryStr);
+
+    return std::move(query);
+}
+
 
 void DatabaseManager::cleanupQuery(QSqlQuery* query)
 {
@@ -97,17 +112,17 @@ QString DatabaseManager::getFilterPart(const std::pair<Column, FilterParams>& fi
     {
         case CompareType::endsWith: case CompareType::startsWith:
         case CompareType::includes:
-            return columnName + " LIKE :" + columnName;
+            return columnName + " ILIKE :" + columnName;
         case CompareType::equals:
             return columnName + " = :" + columnName;
-        case CompareType::data:
-            QStringList years = QString::fromStdString(filter.second.value).split("|");
+        case CompareType::range:
+            QStringList years = QString::fromStdString(filter.second.value).split(":");
             int leftBound = years.front().toInt();
             int rightBound = years.back().toInt();
 
-            if (leftBound && rightBound) {return columnName + " BETWEEN :yearstart AND :yearend";} 
-            else if (leftBound) {return columnName + " >= :yearstart";}
-            else if (rightBound) {return columnName + " <= :yearend";}
+            if (leftBound && rightBound) {return columnName + " BETWEEN :leftbound AND :rightbound";} 
+            else if (leftBound) {return columnName + " >= :leftbound";}
+            else if (rightBound) {return columnName + " <= :rightbound";}
             return QString();
     }
 }
@@ -134,10 +149,10 @@ void DatabaseManager::bindValue(QSqlQuery& query, const std::pair<Column, Filter
         case CompareType::equals:
             query.bindValue(":" + columnName, filterValue);
             break;
-        case CompareType::data:
-            QStringList years = filterValue.split("|");
-            query.bindValue(":" + columnName + "start", years.front());
-            query.bindValue(":" + columnName + "end", years.back());
+        case CompareType::range:
+            QStringList years = filterValue.split(":");
+            query.bindValue(":leftbound", years.front());
+            query.bindValue(":rightbound", years.back());
             break;
     }
 }

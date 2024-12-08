@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <map>
+#include <set>
 #include <thread>
 #include <future>
 #include <QJsonObject>
@@ -14,9 +15,8 @@ enum class RequestType
 {
     page,
     search,
-    signin,
-    login,
-    pageCount
+    pageCount,
+    uniqueValues
 };
 
 class Response;   

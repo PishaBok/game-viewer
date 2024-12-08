@@ -62,10 +62,10 @@ const std::map<std::string, CompareType> compareTypeFromTitle =
 const std::map<Column, std::function<bool(std::string_view, std::string_view)>> defautCompareMap =
 {
     {Column::userName, compareEquals}, {Column::password, compareEquals},
-    {Column::gameId, compareEquals}, {Column::gameName, compareStartsWith},
-    {Column::platform, compareEquals}, {Column::year, compareData},
-    {Column::genre, compareEquals}, {Column::publisher, compareStartsWith},
-    {Column::criticscore, compareEquals}, {Column::rating, compareEquals}
+    {Column::gameId, compareStartsWith}, {Column::gameName, compareStartsWith},
+    {Column::platform, compareStartsWith}, {Column::year, compareData},
+    {Column::genre, compareStartsWith}, {Column::publisher, compareStartsWith},
+    {Column::criticscore, compareData}, {Column::rating, compareStartsWith}
 };
 
 

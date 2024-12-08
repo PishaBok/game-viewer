@@ -1,16 +1,22 @@
 #include <client/client_engine.hpp>
+#include "client_engine.hpp"
 
 ClientEngine::ClientEngine(QObject *parent)
-    : QObject{parent}, _recordsOnPage{9}, _currentPage{1},
+    : QObject{parent}, _recordsOnPage{9}, _currentPage{1}, _searchState{false},
+    _currentSearchRecord{-1},
     _responseToFunc
     {
         {RequestType::page, std::bind(&ClientEngine::pageResponse, this, std::placeholders::_1)},
-        {RequestType::pageCount, std::bind(&ClientEngine::pageCountResponse, this, std::placeholders::_1)}
+        {RequestType::pageCount, std::bind(&ClientEngine::pageCountResponse, this, std::placeholders::_1)},
+        {RequestType::uniqueValues, std::bind(&ClientEngine::uniqueValuesResponse, this, std::placeholders::_1)},
+        {RequestType::search, std::bind(&ClientEngine::searchResponse, this, std::placeholders::_1)}
     },
     _responseFactory
     {
         {RequestType::page, [](){return std::make_unique<PageResponse>();}},
-        {RequestType::pageCount, [](){return std::make_unique<PageCountResponse>();}}
+        {RequestType::pageCount, [](){return std::make_unique<PageCountResponse>();}},
+        {RequestType::uniqueValues, [](){return std::make_unique<UniqueValuesResponse>();}},
+        {RequestType::search, [](){return std::make_unique<SearchResponse>();}}
     }
 {}
 
@@ -33,6 +39,9 @@ void ClientEngine::connectedToServer()
     PageRequest pageRequest{_currentPage, _filter};
     emit sendToServer(QJsonDocument(pageRequest.serialize()).toJson());
     pageCount();
+
+    uniqueValues(Column::genre);
+    uniqueValues(Column::rating);
 }
 
 
@@ -66,9 +75,43 @@ void ClientEngine::filter(const std::map<Column, FilterParams>& filter)
     emit updateActiveFilter(_filter);
 }
 
-void ClientEngine::search(const std::map<Column, QString>& search)
+void ClientEngine::searchOn(const std::map<Column, QString>& search)
 {
+    _searchState = true;
     if (search == _searchMap) {return;}
+    
+    _searchMap = search;
+    _searchResult.clear();
+
+    SearchRequest request{_filter, _searchMap};
+    emit sendToServer(QJsonDocument(request.serialize()).toJson());
+}
+
+void ClientEngine::searchOff()
+{
+    _searchState = false;
+    emit searchSwitch(_searchState);
+}
+
+void ClientEngine::searchRecord(const int recordNumber)
+{
+    if (recordNumber < 1 || recordNumber > _searchResult.size()) {return;}
+    int record = _searchResult.at(recordNumber - 1);
+
+    qDebug() << record;
+    auto [pageNumber, newNumber] = recordNumberToPage(record);
+    _currentSearchRecord = recordNumber;
+    emit updateSearchCounter(QString::number(_currentSearchRecord), QString::number(_searchRecordCount));
+
+    if (pageNumber != _currentPage) {page(pageNumber);}
+    else
+    {   if (_currentSearchRecord >= 0)
+        {
+            emit highlightCard(_currentSearchRecord % _recordsOnPage);
+        }
+        
+        _currentSearchRecord = -1;
+    }
 }
 
 void ClientEngine::pageCount()
@@ -77,6 +120,11 @@ void ClientEngine::pageCount()
     emit sendToServer(QJsonDocument(request.serialize()).toJson());
 }
 
+void ClientEngine::uniqueValues(Column column)
+{
+    UniqueValuesRequest request{column};
+    emit sendToServer(QJsonDocument(request.serialize()).toJson());
+}
 
 void ClientEngine::processResponse(const QJsonObject& json)
 {
@@ -107,6 +155,19 @@ void ClientEngine::pageResponse(const std::unique_ptr<Response>& response)
     emit updatePage(_savedPages.at(_currentPage));
     emit updatePageCounter(QString::number(_currentPage), QString::number(_pageCount));
     emit setEnabledButtons(true);
+    if (_currentSearchRecord >= 0)
+    {
+        emit highlightCard(_currentSearchRecord % _recordsOnPage);
+    }
+    _currentSearchRecord = -1;
+}
+
+std::pair<int, int> ClientEngine::recordNumberToPage(const int recordNumber)
+{
+    int page = ceil((recordNumber + 1) / static_cast<double>(_recordsOnPage));
+    int newNumber = (recordNumber % _recordsOnPage);
+
+    return {page, newNumber};
 }
 
 void ClientEngine::pageCountResponse(const std::unique_ptr<Response>& response)
@@ -117,10 +178,34 @@ void ClientEngine::pageCountResponse(const std::unique_ptr<Response>& response)
     emit updatePageCounter(QString::number(_currentPage), QString::number(_pageCount));
 }
 
+void ClientEngine::uniqueValuesResponse(const std::unique_ptr<Response> &response)
+{
+    QJsonObject data = response->data();
+    Column column = static_cast<Column>(data["column"].toInt());
 
+    QStringList values;
+    for (const auto& value: data["values"].toArray())
+    {
+        values.append(value.toString());
+    }
 
+    emit setDropListValue({column, values});
+}
 
+void ClientEngine::searchResponse(const std::unique_ptr<Response>& response)
+{
+    QJsonObject data = response->data();
 
+    for (const auto& value: data.value("recordIds").toArray())
+    {
+        _searchResult.push_back(value.toInt());
+    }
+    
+    _searchRecordCount = _searchResult.size();
+    searchRecord(1);
+
+    emit searchSwitch(_searchState);
+}
 
 bool ClientEngine::findInCache(const int pageN)
 {
@@ -129,6 +214,11 @@ bool ClientEngine::findInCache(const int pageN)
     {
         emit updatePage(found->second);
         emit updatePageCounter(QString::number(_currentPage), QString::number(_pageCount));
+        if (_currentSearchRecord >= 0)
+        {
+            emit highlightCard(_currentSearchRecord % _recordsOnPage);
+        }
+        _currentSearchRecord = -1;
         return true;
     }
 

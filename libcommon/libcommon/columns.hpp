@@ -30,7 +30,7 @@ enum class CompareType
     endsWith,
     includes,
     equals,
-    data
+    range
 };
 
 // Параметр фильтра для каждого столбца

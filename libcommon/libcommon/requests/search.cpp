@@ -4,8 +4,8 @@ SearchRequest::SearchRequest()
     : Request(RequestType::search)
 {}
 
-SearchRequest::SearchRequest(const int recordsOnPage, const std::map<Column, QString>& filter, const std::map<Column, QString>& search, const bool isCorrectOrder)
-    : Request(RequestType::search), _recordsOnPage{recordsOnPage}, _filter{filter}, _search{search}, _isCorrectOrder{isCorrectOrder}
+SearchRequest::SearchRequest(const std::map<Column, FilterParams>& filter, const std::map<Column, QString>& search)
+    : Request(RequestType::search), _filter{filter}, _search{search}
 {}
 
 QJsonObject SearchRequest::serialize() const
@@ -15,12 +15,19 @@ QJsonObject SearchRequest::serialize() const
 
     QJsonObject paramsObject;
 
-    paramsObject["recordsOnPage"] = _recordsOnPage;
-    QJsonArray filterArray = mapToJson(_filter);
-    QJsonArray searchArray = mapToJson(_search);
+    QJsonArray filterArray;
+    for (const auto& [column, filterSetting]: _filter)
+    {
+        QJsonObject filterObj;
+        filterObj["column"] = static_cast<int>(column);
+        filterObj["value"] = QString::fromStdString(filterSetting.value);
+        filterObj["compareType"] = static_cast<int>(filterSetting.type);
+        filterArray.append(filterObj);
+    }
     paramsObject["filter"] = filterArray;
+
+    QJsonArray searchArray = mapToJson(_search);
     paramsObject["search"] = searchArray;
-    paramsObject["isCorrectOrder"] = _isCorrectOrder;
 
     result["params"] = paramsObject;
 
@@ -37,10 +44,16 @@ void SearchRequest::deserialize(const QJsonObject& data)
 
     QJsonObject paramsJson = data.value("params").toObject();
 
-    _recordsOnPage = paramsJson.value("recordsOnPage").toInt();
-    _filter = jsonToMap(paramsJson.value("filter").toArray());
+    QJsonArray filterValues = paramsJson.value("filter").toArray();
+    for (const QJsonValue& jsonValue: filterValues)
+    {
+        QJsonObject valueObj = jsonValue.toObject();
+        Column column = static_cast<Column>(valueObj.value("column").toInt());
+        FilterParams params = {valueObj.value("value").toString().toStdString(), static_cast<CompareType>(valueObj.value("compareType").toInt())};
+
+        _filter.insert({column, params});
+    }
     _search = jsonToMap(paramsJson.value("search").toArray());
-    _isCorrectOrder = paramsJson.value("isCorrectOrder").toBool();
 }
 
 bool SearchRequest::validate(const QJsonObject& jsonObj)
@@ -87,12 +100,8 @@ SearchResponse::SearchResponse()
     : Response(RequestType::search)
 {}
 
-SearchResponse::SearchResponse(const int recordCount, const std::set<int>& pageNumbers)
-    : Response(RequestType::search), _recordCount{recordCount}, _pageNumbers{pageNumbers}
-{}
-
-SearchResponse::SearchResponse(const std::pair<int, std::set<int>>& searcResult)
-    : Response(RequestType::search), _recordCount{searcResult.first}, _pageNumbers{searcResult.second}
+SearchResponse::SearchResponse(const std::set<int>& recordIds)
+    : Response(RequestType::search), _recordIds{recordIds}
 {}
 
 QJsonObject SearchResponse::serialize() const
@@ -102,14 +111,12 @@ QJsonObject SearchResponse::serialize() const
 
     QJsonObject dataObj;
 
-    dataObj["recordCount"] = _recordCount;
-
-    QJsonArray pageArray;
-    for (const int pageNumber: _pageNumbers)
+    QJsonArray idsArray;
+    for (const int id: _recordIds)
     {
-        pageArray.append(pageNumber);
+        idsArray.append(id);
     }
-    dataObj["pageNumbers"] = pageArray;
+    dataObj["recordIds"] = idsArray;
 
     result["data"] = dataObj;
     return result;
@@ -117,15 +124,12 @@ QJsonObject SearchResponse::serialize() const
 
 void SearchResponse::deserialize(const QJsonObject& jsonObject)
 {
-    _recordCount = 0;
-    _pageNumbers.clear();
+    _recordIds.clear();
 
     QJsonObject dataObj = jsonObject.value("data").toObject();
 
-    _recordCount = dataObj.value("recordCount").toInt();
-
-    for (const QJsonValue& numberValue: dataObj.value("pageNumbers").toArray())
+    for (const QJsonValue& numberValue: dataObj.value("recordIds").toArray())
     {
-        _pageNumbers.insert(numberValue.toInt());
+        _recordIds.insert(numberValue.toInt());
     }
 }

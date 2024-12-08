@@ -25,10 +25,9 @@ QTcpSocket* Socket::tcpSocketPtr()
 
 void Socket::slotReadyRead()
 {
-    while (_tcpSocket->canReadLine()) 
+    while (_tcpSocket->bytesAvailable() > 0) 
     {
         QByteArray line = _tcpSocket->readLine();
-        
         if (_expectedLength == 0) 
         {
             // Получаем длину сообщения
@@ -43,7 +42,6 @@ void Socket::slotReadyRead()
                 emit processResponse(QJsonDocument::fromJson(_buffer).object());
                 _buffer.clear();
                 _expectedLength = 0; // Сбрасываем
-                break;
             }
         }
     }

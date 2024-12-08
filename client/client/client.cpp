@@ -1,14 +1,15 @@
 #include <client/client.hpp>
+#include "client.hpp"
 
-Client::Client(PageCommand* pageCommand, FilterCommand* filterCommand, Invoker* invoker, QWidget *parent)
-    : QMainWindow(parent), _pageCommand{pageCommand}, _filterCommand{filterCommand}, _invoker{invoker},
-    _pageNumberStr{"1"}, _pageCountStr{"ND"},
+Client::Client(ClientEngine* engine, Invoker* invoker, QWidget *parent)
+    : QMainWindow(parent), _engine{engine}, _invoker{invoker},
+    _pageNumberStr{"1"}, _pageCountStr{"ND"}, _searchNumberStr{"1"}, _searchCountStr{"ND"}, 
     _searchColumns {Column::gameName, Column::publisher, Column::genre},
     _filterColumns {Column::gameName, Column::platform, Column::year, Column::genre, Column::publisher,
                     Column::criticscore, Column::rating}
 {
     _searchLabel = createSearchWidget();
-    _pageLabel = createPageLabel();
+    _pageInfoLabel = createPageLabel();
     _searchFrame = createSearchFrame();
     _activeFilter = createActiveFilter();
     _pageWidget = createPageWidget();
@@ -49,10 +50,10 @@ QLineEdit *Client::createPageLabel() const
 
 SearchLabel *Client::createSearchWidget() const
 {
-    return new SearchLabel(columnTitles(_searchColumns));
+    return new SearchLabel(_searchColumns);
 }
 
-QFrame *Client::createSearchFrame() const
+QFrame *Client::createSearchFrame()
 {
     QFrame* searchFrame = new QFrame;
     searchFrame->setObjectName("searchFrame");
@@ -60,14 +61,38 @@ QFrame *Client::createSearchFrame() const
     
     QHBoxLayout* layout = new QHBoxLayout;
     layout->setAlignment(Qt::AlignmentFlag::AlignRight);
+    layout->setSpacing(5);
     layout->setContentsMargins(5, 5, 5, 5);
 
-    QSpinBox* searchBox = new QSpinBox;
-    searchBox->setObjectName("searchBox");
-    searchBox->setFixedSize(65, 18);
-    searchBox->setFocusPolicy(Qt::NoFocus);
+    QPushButton* spinBoxLeftButton = new QPushButton("<");
+    spinBoxLeftButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    connect(spinBoxLeftButton, &QPushButton::clicked, [this]
+    {
+        auto command = std::make_shared<SearchRecordCommand>(_engine, _searchNumberStr.toInt() - 1);
+        newCommand(command);
+    });
+    _searchInfoLabel = new QLineEdit(QString("%1/%2").arg(_searchNumberStr, _searchCountStr));
+    _searchInfoLabel->setMaximumWidth(60);
+    _searchInfoLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    QPushButton* spinBoxRightButton = new QPushButton(">");
+    spinBoxRightButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    connect(spinBoxRightButton, &QPushButton::clicked, [this]
+    {
+        auto command = std::make_shared<SearchRecordCommand>(_engine, _searchNumberStr.toInt() + 1);
+        newCommand(command);
+    });
 
-    layout->addWidget(searchBox);
+    QPushButton* doneButton = new QPushButton("Готово");
+    connect(doneButton, &QPushButton::clicked, [this]
+    {
+        auto command = std::make_shared<SearchOffCommand>(_engine);
+        newCommand(command);
+    });
+
+    layout->addWidget(spinBoxLeftButton);
+    layout->addWidget(_searchInfoLabel);
+    layout->addWidget(spinBoxRightButton);
+    layout->addWidget(doneButton);
 
     searchFrame->setLayout(layout);
 
@@ -97,14 +122,12 @@ QWidget *Client::createPageWidget() const
     return pageWidget;
 }
 
-QPushButton* Client::createPushButton(const QString& title, Command* command)
+QPushButton* Client::createPushButton(const QString& title)
 {
     QPushButton* button = new QPushButton(title);
     button->setObjectName("toolButton");
     _buttons.push_back(button);
 
-    _senderToCommand[button] = command;
-   
     return button;
 }
 
@@ -114,14 +137,13 @@ QMenuBar *Client::createMenuBar()
 
     QMenu* walkTo = new QMenu("Переход");
     QAction* walkToAction = new QAction("Перейти к странице...");
-    _senderToCommand[walkToAction] = _pageCommand;
     connect(walkToAction, &QAction::triggered, [this, walkToAction]()
     {
         std::unique_ptr<PageDialog> dialog = std::make_unique<PageDialog>();
         if (dialog->exec() == QDialog::Accepted)
         {
-            _pageCommand->setPage(dialog->data());
-            commandTriggered(walkToAction);
+            auto command = std::make_shared<PageCommand>(_engine, dialog->data());
+            newCommand(command);
         }
     });
 
@@ -136,41 +158,42 @@ QToolBar *Client::createToolBar()
 {
     QToolBar* toolBar = new QToolBar;
 
-    QPushButton* stepBack = createPushButton(QString::fromUtf8("\u2190"), _pageCommand);
-    connect(stepBack, &QPushButton::clicked, [this, stepBack]()
+    QPushButton* stepBack = createPushButton(QString::fromUtf8("\u2190"));
+    connect(stepBack, &QPushButton::clicked, [this]()
     {
-        _pageCommand->setPage(_pageNumberStr.toInt() - 1);
-        commandTriggered(stepBack);
+        auto command = std::make_shared<PageCommand>(_engine, _pageNumberStr.toInt() - 1);
+        newCommand(command);
     });
 
-    QPushButton* stepForward = createPushButton(QString::fromUtf8("\u2192"), _pageCommand);
-    connect(stepForward, &QPushButton::clicked, [this, stepForward]()
+    QPushButton* stepForward = createPushButton(QString::fromUtf8("\u2192"));
+    connect(stepForward, &QPushButton::clicked, [this]()
     {
-        _pageCommand->setPage(_pageNumberStr.toInt() + 1);
-        commandTriggered(stepForward);
+        auto command = std::make_shared<PageCommand>(_engine, _pageNumberStr.toInt() + 1);
+        newCommand(command);
     });
 
-    QPushButton* search = createPushButton(QString(QChar(0xD83D)) + QChar(0xDD0D), _filterCommand);
+    QPushButton* search = createPushButton(QString(QChar(0xD83D)) + QChar(0xDD0D));
     connect(search, &QPushButton::clicked, [this]()
     {
-
+        auto command = std::make_shared<SearchOnCommand>(_engine, _searchLabel->data());
+        newCommand(command);
     });
 
-    QPushButton* filter = createPushButton("Фильтр", _filterCommand);
+    QPushButton* filter = createPushButton("Фильтр");
     filter->setMinimumWidth(65);
-    connect(filter, &QPushButton::clicked, [this, filter]()
+    connect(filter, &QPushButton::clicked, [this]()
     {
-        std::unique_ptr<FilterDialog> dialog = std::make_unique<FilterDialog>(_filterColumns);
+        std::unique_ptr<FilterDialog> dialog = std::make_unique<FilterDialog>(_filterColumns, _dropListValues);
         if (dialog->exec() == QDialog::Accepted)
         {
-            _filterCommand->setFilter(dialog->data());
-            commandTriggered(filter);
+            auto command = std::make_shared<FilterCommand>(_engine, dialog->data());
+            newCommand(command);
         }
     });
 
     toolBar->addWidget(stepBack);
     toolBar->addWidget(stepForward);
-    toolBar->addWidget(_pageLabel);
+    toolBar->addWidget(_pageInfoLabel);
     toolBar->addWidget(_searchLabel);
     toolBar->addWidget(search);
     toolBar->addWidget(filter);
@@ -210,7 +233,7 @@ void Client::updatePageCounter(const QString &pageNumber, const QString& pageCou
 {
     _pageNumberStr = pageNumber;
     _pageCountStr = pageCount;
-    _pageLabel->setText(QString("%1/%2").arg(_pageNumberStr, _pageCountStr));
+    _pageInfoLabel->setText(QString("%1/%2").arg(_pageNumberStr, _pageCountStr));
 }
 
 void Client::updateActiveFilter(const std::map<Column, FilterParams> &filters)
@@ -229,10 +252,9 @@ void Client::updateActiveFilter(const std::map<Column, FilterParams> &filters)
     _activeFilter->setVisible(!filters.empty());
 }
 
-void Client::commandTriggered(QObject* sender)
+void Client::newCommand(std::shared_ptr<Command> command)
 {
-    Command* command = _senderToCommand.at(sender);
-    if (command != nullptr)
+    if (command.get() != nullptr)
     {
         _invoker->setCommand(command);
         _invoker->runCommand();
@@ -243,13 +265,15 @@ void Client::commandTriggered(QObject* sender)
 void Client::updatePage(const clib::TableModel &model)
 {
     clearLayout(_pageWidget->layout());
-    QGridLayout* layout = qobject_cast<QGridLayout*>(_pageWidget->layout());
+    _activeCards.clear();
 
+    QGridLayout* layout = qobject_cast<QGridLayout*>(_pageWidget->layout());
     for (int i = 0; i < model.rowCount(); ++i)
     {
         GameCard* gameCard = new GameCard({model.data(i, "gamename").toString(), model.data(i, "platform").toString(), model.data(i, "year").toInt(),
                                             model.data(i, "genre").toString(), model.data(i, "criticscore").toInt(), model.data(i, "rating").toString()});
         layout->addWidget(gameCard, i / 3, i % 3);
+        _activeCards.insert({i, gameCard});
     }
 }
 
@@ -258,5 +282,46 @@ void Client::setEnabledButtons(const bool flag)
     for(auto& button: _buttons)
     {
         button->setEnabled(flag);
+    }
+}
+
+
+void Client::setDropListValue(const std::pair<Column, QStringList>& dlValue)
+{
+    _dropListValues.insert(dlValue);
+}
+
+void Client::searchSwitch(const bool flag)
+{
+    _searchFrame->setVisible(flag);
+    if (!flag) {offHighLight();}
+}
+
+void Client::updateSearchCounter(const QString& searchNumber, const QString& searchCount)
+{
+    _searchNumberStr = searchNumber;
+    _searchCountStr = searchCount;
+    _searchInfoLabel->setText(QString("%1/%2").arg(_searchNumberStr, _searchCountStr));
+}
+
+void Client::highlightCard(const int cardNumber)
+{
+    offHighLight();
+    qDebug() << "Card Number: " << cardNumber;
+    if (cardNumber < 0) {return;}
+    _activeCards.at(cardNumber)->setStyleSheet("");
+    _activeCards.at(cardNumber)->setObjectName("card_highlighted");
+    _activeCards.at(cardNumber)->style()->unpolish(_activeCards.at(cardNumber));
+    _activeCards.at(cardNumber)->style()->polish(_activeCards.at(cardNumber));
+}
+
+void Client::offHighLight()
+{
+    for (auto& card: _activeCards)
+    {
+        card.second->setStyleSheet("");
+        card.second->setObjectName("card");
+        card.second->style()->unpolish(card.second);
+        card.second->style()->polish(card.second);
     }
 }

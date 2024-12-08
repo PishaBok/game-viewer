@@ -1,34 +1,30 @@
 #include <client/search_label.hpp>
 
-SearchLabel::SearchLabel(QStringList titles, QWidget* parent)
+SearchLabel::SearchLabel(const std::vector<Column> columns, QWidget* parent)
     : QWidget(parent)
 {
     QHBoxLayout* layout = new QHBoxLayout;
 
-    for (const auto& title: titles)
+    for (const auto& column: columns)
     {
-        QLabel* label = new QLabel(title, this);
         QLineEdit* lineEdit = new QLineEdit(this);
         lineEdit->setObjectName("toolBarLineEdit");
         lineEdit->setFixedHeight(25);
+        lineEdit->setPlaceholderText(QString::fromStdString(columnToTitleMap.at(column)));
+        connect(lineEdit, &QLineEdit::textChanged, [this, lineEdit, column]()
+        {
+            _values[column] = lineEdit->text();
+        });
 
-        layout->addWidget(label);
+        _values[column] = QString();
+
         layout->addWidget(lineEdit);
-
-        _titlesMap[label] = lineEdit;
     }
 
     setLayout(layout);
 }
 
-std::map<QString, QString> SearchLabel::data() const
+std::map<Column, QString> SearchLabel::data() const
 {
-    std::map<QString, QString> result;
-
-    for (auto it{_titlesMap.begin()}; it != _titlesMap.end(); ++it)
-    {
-        result[it->first->text()] = it->second->text();
-    }
-
-    return result;
+    return _values;
 }

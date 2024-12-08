@@ -28,10 +28,17 @@ public:
 
     void runCommand()
     {
-        _threadPool.enqueue(std::bind(&Command::execute, _command));
+        if (_command)
+        {
+            auto command = _command;
+            _threadPool.enqueue([command]()
+            {
+                command->execute();
+            });
+        }
     }
 
-    void setCommand(Command* command)
+    void setCommand(std::shared_ptr<Command> command)
     {
         if (command != nullptr)
         {
@@ -40,21 +47,19 @@ public:
     }
 private:
     ThreadPool _threadPool;
-    Command* _command;
+    std::shared_ptr<Command> _command;
 };
 
 class PageCommand: public Command
 {
 public:
-    PageCommand(ClientEngine* engine) : Command(engine), _pageNumber{0} {}
+    PageCommand(ClientEngine* engine, const int pageNumber) 
+        : Command(engine), _pageNumber{pageNumber} {}
     virtual ~PageCommand() {}
     void execute() override
     {
         _engine->page(_pageNumber);
     }
-
-    void setPage(const int pageN) {_pageNumber = pageN;}
-
 private:
     int _pageNumber;
 };
@@ -62,27 +67,53 @@ private:
 class FilterCommand: public Command
 {
 public:
-    FilterCommand(ClientEngine* engine) : Command(engine), _filterValues{} {}
+    FilterCommand(ClientEngine* engine, const std::map<Column, FilterParams>& filterValues) 
+        : Command(engine), _filterValues{filterValues} {}
     virtual ~FilterCommand() {}
     void execute() override
     {
         _engine->filter(_filterValues);
     }
-    
-    void setFilter(const std::map<Column, FilterParams>& filterValues) {_filterValues = filterValues;}
-
 private:
     std::map<Column, FilterParams> _filterValues;
 };
 
-class SearchCommand: public Command
+class SearchOnCommand: public Command
 {
 public:
-    SearchCommand(ClientEngine* engine) : Command(engine), _searchValues{} {}
-    virtual ~SearchCommand() {}
-
-    void setSearch(const std::map<Column, QString>& searchValues) {_searchValues = searchValues;}
-
+    SearchOnCommand(ClientEngine* engine, const std::map<Column, QString>& searchValues) 
+        : Command(engine), _searchValues{searchValues} {}
+    virtual ~SearchOnCommand() {}
+    void execute() override
+    {
+        _engine->searchOn(_searchValues);
+    }
 private:
     std::map<Column, QString> _searchValues;
+};
+
+class SearchOffCommand: public Command
+{
+public:
+    SearchOffCommand(ClientEngine* engine) 
+        : Command(engine){}
+    virtual ~SearchOffCommand() {}
+    void execute() override
+    {
+        _engine->searchOff();
+    }
+};
+
+class SearchRecordCommand: public Command
+{
+public:
+    SearchRecordCommand(ClientEngine* engine, const int recordNumber)
+        : Command(engine), _recordNumber{recordNumber} {}
+    virtual ~SearchRecordCommand() {}
+    void execute() override
+    {
+        _engine->searchRecord(_recordNumber);
+    }
+private:
+    int _recordNumber;
 };

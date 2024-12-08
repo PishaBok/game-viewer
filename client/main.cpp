@@ -18,16 +18,17 @@ int main(int argc, char** argv)
     app.setStyleSheet(file.readAll());
 
     ClientEngine engine;
-
-    PageCommand pageCommand(&engine);
-    FilterCommand filterCommand(&engine);
     Invoker invoker;
 
-    Client wd(&pageCommand, &filterCommand, &invoker); 
+    Client wd(&engine, &invoker); 
     QObject::connect(&engine, &ClientEngine::updatePage, &wd, &Client::updatePage);
     QObject::connect(&engine, &ClientEngine::updatePageCounter, &wd, &Client::updatePageCounter);
     QObject::connect(&engine, &ClientEngine::updateActiveFilter, &wd, &Client::updateActiveFilter);
     QObject::connect(&engine, &ClientEngine::setEnabledButtons, &wd, &Client::setEnabledButtons);
+    QObject::connect(&engine, &ClientEngine::setDropListValue, &wd, &Client::setDropListValue);
+    QObject::connect(&engine, &ClientEngine::searchSwitch, &wd, &Client::searchSwitch);
+    QObject::connect(&engine, &ClientEngine::updateSearchCounter, &wd, &Client::updateSearchCounter);
+    QObject::connect(&engine, &ClientEngine::highlightCard, &wd, &Client::highlightCard);
 
     engine.start();
     wd.show();

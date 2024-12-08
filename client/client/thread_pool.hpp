@@ -15,12 +15,12 @@ public:
     void enqueue(Func&& func, Args&&... args);
 
 private:
-    std::vector<std::thread> workers;
-    std::queue<std::function<void()>> tasks;
+    std::vector<std::thread> _workers;
+    std::queue<std::function<void()>> _tasks;
 
-    std::mutex queueMutex;
-    std::condition_variable condition;
-    std::atomic<bool> stop;
+    std::mutex _queueMutex;
+    std::condition_variable _condition;
+    std::atomic<bool> _stop;
 
     void workerThread();
 };
@@ -29,8 +29,8 @@ template <class Func, class... Args>
 void ThreadPool::enqueue(Func&& func, Args&&... args) 
 {
     {
-        std::unique_lock<std::mutex> lock(queueMutex);
-        tasks.emplace([=]() { func(args...); });
+        std::lock_guard<std::mutex> lock(_queueMutex);
+        _tasks.emplace([=]() { func(args...); });
     }
-    condition.notify_one();
+    _condition.notify_one();
 }

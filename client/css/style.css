@@ -30,6 +30,11 @@ QFrame#searchFrame {
     border: 1px solid rgb(47, 47, 47);
 }
 
+QFrame#delimeterLine {
+    background-color: rgb(47, 47, 47);
+    height: 2px;
+}
+
 QLabel#cardTitle {
     font-weight: bold; 
     font-size: 16px; 
@@ -50,18 +55,17 @@ QFrame#card {
     border-radius: 10px; /* Скругленные углы для эффекта */
 }
 
-QWidget#page {
-    background-color: rgb(55, 60, 71);
+QFrame#card_highlighted {
+    background: qlineargradient(
+        spread:pad,
+        x1:0, y1:0, x2:1, y2:1,
+        stop:0 rgba(255, 69, 0, 0.6),  /* Red-Orange with 60% opacity */
+        stop:0.5 rgba(255, 140, 0, 0.4) /* Darker Orange with 40% opacity */
+    );
+    border-radius: 12px; /* Чуть более скругленные углы */
+    border: 2px solid rgba(255, 69, 0, 1); /* Оранжевая граница */
 }
 
-QSpinBox::down-button  {
-    subcontrol-origin: margin;
-    subcontrol-position: center left;
-    image: url(:/icons/leftArrow.png);
-}
-  
-QSpinBox::up-button  {
-    subcontrol-origin: margin;
-    subcontrol-position: center right;
-    image: url(:/icons/rightArrow.png);
+QWidget#page {
+    background-color: rgb(55, 60, 71);
 }
