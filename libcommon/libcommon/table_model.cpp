@@ -45,11 +45,14 @@ namespace clib
                 setData(this->index(row, col), queryModel.data(queryModel.index(row, col)));
             }
         }
+
+
     }
 
     TableModel::TableModel(const TableModel &other)
         : QAbstractTableModel{other.parent()},
-        _nRows{other.rowCount()}, _nColumns{other.columnCount()}, _horizontalHeaders{other._horizontalHeaders}
+        _nRows{other.rowCount()}, _nColumns{other.columnCount()}, _horizontalHeaders{other._horizontalHeaders},
+        _icons{other._icons}
     {
         emit headerDataChanged(Qt::Orientation::Horizontal, 0, _nColumns - 1);
 
@@ -64,7 +67,8 @@ namespace clib
 
     TableModel::TableModel(TableModel &&other) noexcept
         : QAbstractTableModel{other.parent()},
-        _nRows{other.rowCount()}, _nColumns{other.columnCount()}, _horizontalHeaders{std::move(other._horizontalHeaders)}
+        _nRows{other.rowCount()}, _nColumns{other.columnCount()}, _horizontalHeaders{std::move(other._horizontalHeaders)},
+        _icons{std::move(other._icons)}
     {
         emit headerDataChanged(Qt::Orientation::Horizontal, 0, _nColumns - 1);
 
@@ -86,6 +90,7 @@ namespace clib
     {
         _nRows = other.rowCount();
         _nColumns = other.columnCount();
+        _icons = other._icons;
 
         _horizontalHeaders.clear();
         _data.clear();
@@ -102,6 +107,7 @@ namespace clib
                 setData(this->index(row, col), other._data[other.index(row, col)]);
             }
         }
+
 
         return *this;
     }
@@ -193,6 +199,26 @@ namespace clib
         return Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsEditable;
     }
 
+    QImage TableModel::icon(const int row) const
+    {
+        QByteArray byteArray = QByteArray::fromBase64(_icons[row].toLatin1());
+        QImage image;
+        if (image.loadFromData(byteArray, "PNG")) {return image;}
+
+        return QImage();
+    }
+
+    void TableModel::setIcon(const int row, const QImage& icon)
+    {
+        QByteArray byteArray;
+        QBuffer buffer(&byteArray);
+        icon.save(&buffer, "PNG");
+
+        _icons[row] = QString::fromLatin1(byteArray.toBase64());
+    }
+
+
+
     void TableModel::setRowCount(const int nRows)
     {
         _nRows = nRows;
@@ -209,9 +235,11 @@ namespace clib
 
         _data.clear();
         _horizontalHeaders.clear();
+        _icons.clear();
         _nRows = 0;
         _nColumns = 0;
-
+        
+        // Получаем заголовки
         QJsonArray headers{jsonObj["headers"].toArray()};
         for(int counter{0}; const QJsonValue& header: headers)
         {
@@ -222,6 +250,7 @@ namespace clib
         setRowCount(jsonObj["data"].toArray().size());
         setColCount(_horizontalHeaders.size());
 
+        // Получаем данные
         for (int row{0}; const QJsonValue& rowValue: jsonObj["data"].toArray())
         {
             QJsonArray rowArray{rowValue.toArray()};
@@ -230,6 +259,14 @@ namespace clib
                 setData(this->index(row, col), cellData.toVariant());
                 ++col;
             }
+            ++row;
+        }
+
+        // Получаем иконки
+        QJsonArray icons{jsonObj["icons"].toArray()};
+        for (int row{0}; const auto& icon: icons)
+        {
+            _icons.insert(row, icon.toString());
             ++row;
         }
 
@@ -242,6 +279,7 @@ namespace clib
 
         QJsonArray headerArray;
         QJsonArray dataArray;
+        QJsonArray iconArray;
 
         // Сохраняем заголовки
         for (int col{0}; col < columnCount(); ++col)
@@ -262,8 +300,15 @@ namespace clib
             dataArray.append(rowArray); // Добавляем объект строки в массив
         }
 
+        // Сохраняем иконки
+        for (int row{0}; row < rowCount(); ++row)
+        {
+            iconArray.append(_icons[row]);
+        }
+
         jsonObj.insert("headers", headerArray);
         jsonObj.insert("data", dataArray);
+        jsonObj.insert("icons", iconArray);
 
         return jsonObj;
 

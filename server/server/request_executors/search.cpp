@@ -3,11 +3,11 @@
 
 SearchExecutor::SearchExecutor(DatabaseManager& dbManager)
 :   _dbManager{dbManager}, _sqlQueryTemplate{"SELECT gameid, gamename, platform, year, genre, publisher, criticscore, rating FROM game WHERE 1 = 1"},
-    _orderBy{"ORDER BY gamename, platform, year, genre, publisher, criticscore, rating"}, _recordsForThread{1000}, _recordCount{},
+    _orderBy{"ORDER BY gamename, genre, publisher, platform, year, criticscore, rating"}, _recordsForThread{1000}, _recordCount{},
     _gameColumnOrder
     {
-        {Column::gameName, 0}, {Column::platform, 1}, {Column::year, 2},
-        {Column::genre, 3}, {Column::publisher, 4}, {Column::criticscore, 5},
+        {Column::gameName, 0}, {Column::genre, 1}, {Column::publisher, 2},
+        {Column::platform, 3}, {Column::year, 4}, {Column::criticscore, 5},
         {Column::rating, 6}
     }
 {}
@@ -33,7 +33,7 @@ std::set<int> SearchExecutor::startSearchThreads(const int threadCount)
     {
         threadResults.push_back(std::async(std::launch::async, [this, i, &running]()
         {
-            return _searchFunc(QueryParams{_sqlQueryTemplate, _orderBy,_filter, _recordsForThread, _recordsForThread * i}, 
+            return _searchFunc(QueryParams{_sqlQueryTemplate, _orderBy, _filter, _recordsForThread, _recordsForThread * i}, 
                                         std::ref(running));
         }));
     }
@@ -95,7 +95,7 @@ std::set<int> SearchExecutor::find(const QueryParams& queryParams, std::atomic<b
         {
             recordIds.insert(row);
         }
-        ++row;
+        ++row;  
     }
     _dbManager.cleanupQuery(query.get());
     return recordIds;

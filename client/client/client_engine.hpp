@@ -42,6 +42,7 @@ private:
     size_t _recordsOnPage;
     int _currentPage;
     int _currentSearchRecord;
+    int _currentSearchRecordRemainder;
     std::map<Column, FilterParams> _filter;
     std::map<Column, QString> _searchMap;
     bool _searchState;
@@ -63,6 +64,8 @@ private:
     void pageCountResponse(const std::unique_ptr<Response>& response);
     void uniqueValuesResponse(const std::unique_ptr<Response>& response);
     void searchResponse(const std::unique_ptr<Response>& response);
+
+    void updateUI();
 public slots:
     void connectedToServer();
     void processResponse(const QJsonObject& json);

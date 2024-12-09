@@ -1,7 +1,7 @@
 #include <client/game_card.hpp>
 
 GameCard::GameCard(const CardData& data, QFrame* parent)
-    : QFrame(parent)
+    : QFrame(parent), _data{data}
 {
     setObjectName("card");
     QVBoxLayout* layout = new QVBoxLayout;
@@ -19,23 +19,26 @@ GameCard::GameCard(const CardData& data, QFrame* parent)
     yearLabel->setObjectName("cardLabel");
     QLabel* genreLabel = new QLabel(data.genre);
     genreLabel->setObjectName("cardLabel");
+    QLabel* publisherLabel = new QLabel(data.publisher);
+    publisherLabel->setObjectName("cardLabel");
 
     QLabel* scoreLabel = new QLabel(QString("Critics Score: %1").arg(data.criticScore));
     scoreLabel->setObjectName("cardLabel");
     QLabel* ratingLabel = new QLabel(QString("Rating: %1").arg(data.rating));
     ratingLabel->setObjectName("cardLabel");
 
+    //setBackgroundIcon(data.icon);
+    
     layout->addWidget(titleLabel);
     layout->addWidget(yearLabel);
     layout->addWidget(genreLabel);
+    layout->addWidget(publisherLabel);
     layout->addWidget(scoreLabel);
     layout->addWidget(ratingLabel);
-
     layout->setStretch(0, 2);
 
     setLayout(layout);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-
 }
 
 GameCard::~GameCard()
@@ -58,4 +61,14 @@ void GameCard::resizeEvent(QResizeEvent *event)
     // resize(newWidth, newHeight);
 
     QWidget::resizeEvent(event);
+}
+
+void GameCard::paintEvent(QPaintEvent* event)
+{
+    QPainter painter(this);
+    QPixmap pixmap = QPixmap::fromImage(_data.icon);
+
+    painter.drawPixmap(this->rect(), pixmap);
+
+    QWidget::paintEvent(event);
 }

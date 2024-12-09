@@ -7,7 +7,7 @@ const std::map<Column, std::string> columnToStringMap =
     {Column::platform, "platform"}, {Column::year, "year"},
     {Column::genre, "genre"}, {Column::publisher, "publisher"},
     {Column::criticscore, "criticscore"}, {Column::rating, "rating"},
-    {Column::gameimg, "gameimg"}
+    {Column::gameicon, "gameicon"}
 };
 
 const std::map<std::string, Column> columnFromStringMap = 
@@ -17,7 +17,7 @@ const std::map<std::string, Column> columnFromStringMap =
     {"platform", Column::platform}, {"year", Column::year},
     {"genre", Column::genre}, {"publisher", Column::publisher},
     {"criticscore", Column::criticscore}, {"rating", Column::rating},
-    {"gameimg", Column::gameimg}
+    {"gameicon", Column::gameicon}
 };
 
 
@@ -62,10 +62,10 @@ const std::map<std::string, CompareType> compareTypeFromTitle =
 const std::map<Column, std::function<bool(std::string_view, std::string_view)>> defautCompareMap =
 {
     {Column::userName, compareEquals}, {Column::password, compareEquals},
-    {Column::gameId, compareStartsWith}, {Column::gameName, compareStartsWith},
-    {Column::platform, compareStartsWith}, {Column::year, compareData},
-    {Column::genre, compareStartsWith}, {Column::publisher, compareStartsWith},
-    {Column::criticscore, compareData}, {Column::rating, compareStartsWith}
+    {Column::gameId, compareEquals}, {Column::gameName, compareEquals},
+    {Column::platform, compareEquals}, {Column::year, compareData},
+    {Column::genre, compareEquals}, {Column::publisher, compareEquals},
+    {Column::criticscore, compareData}, {Column::rating, compareEquals}
 };
 
 

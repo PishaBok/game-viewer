@@ -29,6 +29,7 @@ int main(int argc, char** argv)
     QObject::connect(&engine, &ClientEngine::searchSwitch, &wd, &Client::searchSwitch);
     QObject::connect(&engine, &ClientEngine::updateSearchCounter, &wd, &Client::updateSearchCounter);
     QObject::connect(&engine, &ClientEngine::highlightCard, &wd, &Client::highlightCard);
+    QObject::connect(&engine, &ClientEngine::offHighLight, &wd, &Client::offHighLight);
 
     engine.start();
     wd.show();

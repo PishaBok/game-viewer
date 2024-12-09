@@ -4,7 +4,7 @@
 Client::Client(ClientEngine* engine, Invoker* invoker, QWidget *parent)
     : QMainWindow(parent), _engine{engine}, _invoker{invoker},
     _pageNumberStr{"1"}, _pageCountStr{"ND"}, _searchNumberStr{"1"}, _searchCountStr{"ND"}, 
-    _searchColumns {Column::gameName, Column::publisher, Column::genre},
+    _searchColumns {Column::gameName, Column::genre, Column::publisher},
     _filterColumns {Column::gameName, Column::platform, Column::year, Column::genre, Column::publisher,
                     Column::criticscore, Column::rating}
 {
@@ -271,7 +271,9 @@ void Client::updatePage(const clib::TableModel &model)
     for (int i = 0; i < model.rowCount(); ++i)
     {
         GameCard* gameCard = new GameCard({model.data(i, "gamename").toString(), model.data(i, "platform").toString(), model.data(i, "year").toInt(),
-                                            model.data(i, "genre").toString(), model.data(i, "criticscore").toInt(), model.data(i, "rating").toString()});
+                                            model.data(i, "genre").toString(), model.data(i, "publisher").toString(),
+                                            model.data(i, "criticscore").toInt(), model.data(i, "rating").toString(),
+                                            model.icon(i)});
         layout->addWidget(gameCard, i / 3, i % 3);
         _activeCards.insert({i, gameCard});
     }
@@ -306,9 +308,6 @@ void Client::updateSearchCounter(const QString& searchNumber, const QString& sea
 
 void Client::highlightCard(const int cardNumber)
 {
-    offHighLight();
-    qDebug() << "Card Number: " << cardNumber;
-    if (cardNumber < 0) {return;}
     _activeCards.at(cardNumber)->setStyleSheet("");
     _activeCards.at(cardNumber)->setObjectName("card_highlighted");
     _activeCards.at(cardNumber)->style()->unpolish(_activeCards.at(cardNumber));

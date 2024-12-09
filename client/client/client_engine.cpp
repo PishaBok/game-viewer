@@ -3,7 +3,7 @@
 
 ClientEngine::ClientEngine(QObject *parent)
     : QObject{parent}, _recordsOnPage{9}, _currentPage{1}, _searchState{false},
-    _currentSearchRecord{-1},
+    _currentSearchRecord{0}, _currentSearchRecordRemainder{-1},
     _responseToFunc
     {
         {RequestType::page, std::bind(&ClientEngine::pageResponse, this, std::placeholders::_1)},
@@ -81,7 +81,6 @@ void ClientEngine::searchOn(const std::map<Column, QString>& search)
     if (search == _searchMap) {return;}
     
     _searchMap = search;
-    _searchResult.clear();
 
     SearchRequest request{_filter, _searchMap};
     emit sendToServer(QJsonDocument(request.serialize()).toJson());
@@ -95,22 +94,20 @@ void ClientEngine::searchOff()
 
 void ClientEngine::searchRecord(const int recordNumber)
 {
-    if (recordNumber < 1 || recordNumber > _searchResult.size()) {return;}
-    int record = _searchResult.at(recordNumber - 1);
+    if (recordNumber < 1 || recordNumber > _searchResult.size()) {return;} // Проверка выхода за границы
+    int record = _searchResult.at(recordNumber - 1); // Получение фактического номера (вроде 1675)
 
-    qDebug() << record;
-    auto [pageNumber, newNumber] = recordNumberToPage(record);
+    auto [pageNumber, recordRemainder] = recordNumberToPage(record); // Получаем номер нужной страницы и номер нужной записи на этой странице
     _currentSearchRecord = recordNumber;
-    emit updateSearchCounter(QString::number(_currentSearchRecord), QString::number(_searchRecordCount));
+    _currentSearchRecordRemainder = recordRemainder;
 
+    emit updateSearchCounter(QString::number(_currentSearchRecord), QString::number(_searchRecordCount)); // Обновить счетчик поиска
+    
+    // Если записи нет на текущей странице - получаем ее, иначе просто обновляем UI
     if (pageNumber != _currentPage) {page(pageNumber);}
-    else
-    {   if (_currentSearchRecord >= 0)
-        {
-            emit highlightCard(_currentSearchRecord % _recordsOnPage);
-        }
-        
-        _currentSearchRecord = -1;
+    else 
+    {
+        updateUI();
     }
 }
 
@@ -152,14 +149,7 @@ void ClientEngine::pageResponse(const std::unique_ptr<Response>& response)
         _savedPages[jsonObj.value("page").toInt()] = model;
     }
 
-    emit updatePage(_savedPages.at(_currentPage));
-    emit updatePageCounter(QString::number(_currentPage), QString::number(_pageCount));
-    emit setEnabledButtons(true);
-    if (_currentSearchRecord >= 0)
-    {
-        emit highlightCard(_currentSearchRecord % _recordsOnPage);
-    }
-    _currentSearchRecord = -1;
+    updateUI();
 }
 
 std::pair<int, int> ClientEngine::recordNumberToPage(const int recordNumber)
@@ -194,6 +184,8 @@ void ClientEngine::uniqueValuesResponse(const std::unique_ptr<Response> &respons
 
 void ClientEngine::searchResponse(const std::unique_ptr<Response>& response)
 {
+    _searchResult.clear();
+
     QJsonObject data = response->data();
 
     for (const auto& value: data.value("recordIds").toArray())
@@ -203,8 +195,23 @@ void ClientEngine::searchResponse(const std::unique_ptr<Response>& response)
     
     _searchRecordCount = _searchResult.size();
     searchRecord(1);
-
     emit searchSwitch(_searchState);
+}
+
+void ClientEngine::updateUI()
+{
+    emit updatePage(_savedPages.at(_currentPage)); // Обновить страницу
+    emit updatePageCounter(QString::number(_currentPage), QString::number(_pageCount)); // Обновить счетчик страниц
+    emit setEnabledButtons(true); // Разблокировать кнопки
+    
+
+    // Если необходимо - подсвечиваем страницу
+    if (_searchState && _currentSearchRecord)
+    {
+        emit highlightCard(_currentSearchRecordRemainder);
+        _currentSearchRecord = 0;
+        _currentSearchRecordRemainder = -1;
+    }
 }
 
 bool ClientEngine::findInCache(const int pageN)
@@ -212,13 +219,8 @@ bool ClientEngine::findInCache(const int pageN)
     auto found = _savedPages.find(pageN);
     if (found != _savedPages.end())
     {
-        emit updatePage(found->second);
-        emit updatePageCounter(QString::number(_currentPage), QString::number(_pageCount));
-        if (_currentSearchRecord >= 0)
-        {
-            emit highlightCard(_currentSearchRecord % _recordsOnPage);
-        }
-        _currentSearchRecord = -1;
+        _currentPage = pageN;
+        updateUI();
         return true;
     }
 

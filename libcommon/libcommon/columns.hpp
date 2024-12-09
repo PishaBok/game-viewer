@@ -20,7 +20,7 @@ enum class Column
     publisher,
     criticscore,
     rating,
-    gameimg
+    gameicon
 };
 
 // Метода фильтра/поиска

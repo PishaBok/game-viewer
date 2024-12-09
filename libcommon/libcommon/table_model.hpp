@@ -5,6 +5,9 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QJsonValue>
+#include <QImage>
+#include <QByteArray>
+#include <QBuffer>
 
 namespace clib
 {
@@ -28,11 +31,15 @@ namespace clib
         int columnCount(const QModelIndex& parent = QModelIndex()) const override;
         Qt::ItemFlags flags(const QModelIndex& index) const override;
 
+        QImage icon(const int row) const;
+        void setIcon(const int row, const QImage& icon);
 
         void setRowCount(const int nRows);
         void setColCount(const int nCols); 
         void loadJson(const QJsonObject& jsonObj);
         QJsonObject toJson() const;
+
+
 
     private:
         int _nRows;
@@ -40,5 +47,6 @@ namespace clib
 
         QHash<QModelIndex, QVariant> _data;
         QHash<int, QVariant> _horizontalHeaders;
+        QHash<int, QString> _icons;
     };
 }

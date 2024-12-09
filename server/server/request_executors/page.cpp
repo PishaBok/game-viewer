@@ -2,7 +2,8 @@
 
 PageExecutor::PageExecutor(DatabaseManager &dbManager)
     : _dbManager{dbManager}, _sqlQueryTemplate{"SELECT gameid, gamename, platform, year, genre, publisher, criticscore, rating FROM game WHERE 1 = 1"},
-    _orderBy{"ORDER BY gamename, platform, year, genre, publisher, criticscore, rating"}
+    _sqlQueryIcons{"SELECT gameicon FROM game WHERE 1 = 1"},
+    _orderBy{"ORDER BY gamename, genre, publisher, platform, year, criticscore, rating"}
 {}
 
 std::unique_ptr<Response> PageExecutor::execute()
@@ -38,12 +39,46 @@ std::map<int, clib::TableModel> PageExecutor::startPageThreads()
 
 clib::TableModel PageExecutor::createPage(const int number)
 {
-    auto query{_dbManager.getQuery({_sqlQueryTemplate, _orderBy, _filter, 9, 9 * number})};
+    QueryParams queryParams{_sqlQueryTemplate, _orderBy, _filter, 9, 9 * number};
+    auto query{_dbManager.getQuery(queryParams)};
     query->exec();
+    // {
+    //     for (int col{0}; col < queryModel.columnCount(); ++col)
+    //     {
+    //         QVariant data;
+    //         if (col == imageCol) {data = getImageValue(queryModel.data(queryModel.index(row, col)).toString());}
+    //         else {data = queryModel.data(queryModel.index(row, col));}
+    //         tableModel.setData(tableModel.index(row, col), data);
+    //     }
+    // }
 
     clib::TableModel tableModel{std::move(*query)};
+    _dbManager.cleanupQuery(query.get());
+
+    loadIcons(tableModel, queryParams);
+
+    return tableModel;
+}
+
+void PageExecutor::loadIcons(clib::TableModel& model, QueryParams queryParams)
+{
+    queryParams.strQueryTemplate = _sqlQueryIcons;
+    auto query{_dbManager.getQuery(queryParams)};
+    query->exec();
+
+    for (int row{0}; query->next(); ++row)
+    {
+        QImage image = getImage(query->value(0).toString());
+        model.setIcon(row, image);
+    }
 
     _dbManager.cleanupQuery(query.get());
-    return tableModel;
+}
+
+QImage PageExecutor::getImage(const QString& path)
+{
+    QImage image("../" + path);
+
+    return image;
 }
 

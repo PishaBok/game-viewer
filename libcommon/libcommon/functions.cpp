@@ -27,7 +27,7 @@ namespace clib
         {
             QString columnName = QString::fromStdString(columnToStringMap.at(column));
 
-            if (!record.contains(columnName)) {continue;}
+            if (!record.contains(columnName) || searchValue.isEmpty()) {continue;}
 
             std::string recordValue = record.value(columnName).toString().toStdString();
 
