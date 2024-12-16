@@ -4,11 +4,13 @@ Game Viewer is a simple cross-platform client-server application for browsing a 
 
 ### Features
 
-	•	Client:
+Client:
+
 	•	Displays games as cards with pagination.
 	•	Supports filtering, searching, and showing game covers.
 	•	Responsive UI with a 9:16 aspect ratio.
-	•	Server:
+Server:
+
 	•	Uses PostgreSQL as the database.
 	•	Handles requests via WebSocket and JSON.
 	•	Multithreaded for performance.
@@ -17,24 +19,23 @@ Game Viewer is a simple cross-platform client-server application for browsing a 
 
 ### How to Build and Run
 
-	1.	Clone the repository:
+Clone the repository:
 
-git clone https://github.com/<your-username>/game-viewer.git  
-cd game-viewer  
-
-
-	2.	Build the project with CMake:
-
-mkdir build && cd build  
-cmake ..  
-make  
+	•	git clone https://github.com/<your-username>/game-viewer.git  
+		cd game-viewer  
 
 
-	3.	Run the server using Docker:
+Build the project with CMake:
 
-docker-compose up  
+	•	mkdir build && cd build  
+	•	cmake ..  
+	•	make  
+ 
+Run the server using Docker:
+
+	•	docker-compose up  
 
 
-	4.	Launch the client:
+Launch the client:
 
-./GameViewer  
+	•	./Client  
