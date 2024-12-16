@@ -14,7 +14,8 @@ Server:
 	•	Uses PostgreSQL as the database.
 	•	Handles requests via WebSocket and JSON.
 	•	Multithreaded for performance.
-	•	Technologies:
+Technologies:
+
 	•	C++, Qt, PostgreSQL, WebSocket, JSON, Docker, CMake.
 
 ### How to Build and Run
