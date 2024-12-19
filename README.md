@@ -18,25 +18,3 @@ Technologies:
 
 	•	C++, Qt, PostgreSQL, WebSocket, JSON, Docker, CMake.
 
-### How to Build and Run
-
-Clone the repository:
-
-	•	git clone https://github.com/<your-username>/game-viewer.git  
-		cd game-viewer  
-
-
-Build the project with CMake:
-
-	•	mkdir build && cd build  
-	•	cmake ..  
-	•	make  
- 
-Run the server using Docker:
-
-	•	docker-compose up  
-
-
-Launch the client:
-
-	•	./Client  
